@@ -1,0 +1,14 @@
+{% load ocp %}Subject: {% if refund.amount %}Refund and cancellation{% else %}Cancellation{% endif %} for {{ event.name }} ({{ order.number }})
+
+Hi,
+
+We've cancelled {{ tickets|length }} ticket{{ tickets|length|pluralize }} on order {{ order.number }}:
+{% for ticket in tickets %}- {{ ticket.attendee.full_name }} · {{ ticket.ticket_type.name }} · {{ ticket.display_id }}
+{% endfor %}
+{% if refund.amount %}We're refunding {{ refund.amount|money:order.currency }} to the original payment method. Depending on your bank it can take a few days to appear.{% else %}No refund applies to this cancellation.{% endif %}
+
+These tickets won't work at the door any more.{% if order.status == "partially_refunded" or order.status == "paid" %} Any other tickets on the order still work.{% endif %}
+
+Your booking: {{ booking_url }}
+
+{% include "emails/_footer.txt" %}

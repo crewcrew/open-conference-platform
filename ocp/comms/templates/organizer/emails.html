@@ -1,0 +1,61 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}Emails{% endblock %}
+{% block content %}
+<div class="page-head">
+<div class="stack-xs"><h1 class="h1">Emails</h1><p class="muted">Confirmations and tickets go out by themselves. Write updates and reminders here.</p></div>
+<div class="row">
+<a class="btn" href="{% url 'organizer:compose' org.slug event.pk %}?reminder=day">Add a reminder</a>
+<a class="btn btn-primary" href="{% url 'organizer:compose' org.slug event.pk %}">{% include "components/icon.html" with name="send" size=16 stroke="2" %}Send an update</a>
+</div>
+</div>
+
+{% if failed %}
+<section class="card" aria-labelledby="failed-h">
+<div class="card-head"><h2 id="failed-h" class="h3">Didn't send ({{ failed|length }})</h2><p class="small muted">Fix the address and send again. Resending never issues new tickets.</p></div>
+<div class="table-wrap">
+<table class="table" style="min-width: 720px">
+<thead><tr><th scope="col">Email</th><th scope="col">To</th><th scope="col">Problem</th><th scope="col">Send again</th></tr></thead>
+<tbody>
+{% for d in failed %}
+<tr>
+<td>{{ d.get_kind_display }}<span class="tiny muted" style="display: block">{{ d.created_at|local:event|date_time }}{% if d.attempts > 1 %} · {{ d.attempts }} tries{% endif %}</span></td>
+<td>{% if d.attendee %}{{ d.attendee.full_name }}{% elif d.order %}{{ d.order.purchaser_name }}{% endif %}<span class="tiny muted" style="display: block">{{ d.to_email }}</span></td>
+<td class="small">{{ d.error|truncatechars:120 }}</td>
+<td>
+<form method="post" action="{% url 'organizer:delivery_retry' org.slug event.pk d.pk %}" class="row" style="flex-wrap: nowrap">
+{% csrf_token %}
+<label class="sr-only" for="fix-{{ d.pk }}">Send to</label>
+<input id="fix-{{ d.pk }}" class="input" style="min-width: 180px; min-height: 40px; border: 1px solid var(--field-line); border-radius: 8px; padding: 0 10px" name="email" type="email" value="{{ d.to_email }}">
+<button class="btn btn-sm" type="submit">Resend</button>
+</form>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% endif %}
+
+<section class="card" aria-labelledby="sent-h">
+<h2 id="sent-h" class="card-head h3">Updates and reminders</h2>
+<div class="table-wrap">
+<table class="table">
+<thead><tr><th scope="col">Subject</th><th scope="col">Kind</th><th scope="col">Status</th><th scope="col" class="right">People</th></tr></thead>
+<tbody>
+{% for c in communications %}
+<tr>
+<th scope="row"><a href="{% url 'organizer:email_detail' org.slug event.pk c.pk %}">{{ c.subject }}</a></th>
+<td>{{ c.get_kind_display }}{% if c.is_reminder %} · reminder{% endif %}</td>
+<td>{% if c.status == "scheduled" %}<span class="pill pill-info">{% include "components/icon.html" with name="clock" size=13 stroke="2.4" %}Scheduled {{ c.scheduled_for|local:event|date_time }}</span>{% elif c.status == "sent" %}<span class="pill pill-ok">{% include "components/icon.html" with name="check" size=13 stroke="2.6" %}Sent {{ c.sent_at|local:event|date_time }}</span>{% else %}<span class="pill">{{ c.get_status_display }}</span>{% endif %}</td>
+<td class="right num">{{ c.recipient_count }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="4" class="empty">Nothing sent yet.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% endblock %}

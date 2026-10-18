@@ -1,0 +1,44 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}Edit {{ attendee.full_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="{% url 'organizer:attendees' org.slug event.pk %}?a={{ attendee.pk }}">Attendees</a> / <span aria-current="page">{{ attendee.full_name }}</span></nav>
+<h1 class="h1">Edit {{ attendee.full_name }}</h1>
+<div class="split">
+<form method="post" class="main-col card card-pad-lg stack" novalidate>
+{% csrf_token %}
+<div class="fields">
+{% include "components/field.html" with field=form.first_name label="First name" %}
+{% include "components/field.html" with field=form.last_name label="Last name" %}
+</div>
+{% include "components/field.html" with field=form.email %}
+<label class="check"><input type="checkbox" name="resend"><span>If the email changes, send the ticket to the new address</span></label>
+{% for q, value in questions %}
+<div class="field">
+{% if q.kind == "checkbox" %}
+<label class="check"><input type="checkbox" name="{{ q.field_name }}"{% if value %} checked{% endif %}><span>{{ q.label }}</span></label>
+{% else %}
+<label for="{{ q.field_name }}">{{ q.label }}</label>
+{% if q.kind == "textarea" %}<textarea id="{{ q.field_name }}" name="{{ q.field_name }}" rows="3">{{ value }}</textarea>
+{% elif q.kind == "select" %}<select id="{{ q.field_name }}" name="{{ q.field_name }}"><option value="">Choose…</option>{% for option in q.option_list %}<option{% if option == value %} selected{% endif %}>{{ option }}</option>{% endfor %}</select>
+{% else %}<input id="{{ q.field_name }}" name="{{ q.field_name }}" type="text" value="{{ value }}">{% endif %}
+{% endif %}
+</div>
+{% endfor %}
+{% for group, options, current in groups %}
+<div class="field">
+<label for="g-{{ forloop.counter }}">{{ group }}</label>
+<select id="g-{{ forloop.counter }}" name="group_{{ group }}">
+{% for s in options %}<option value="{{ s.pk }}"{% if s.pk == current %} selected{% endif %}{% if s.is_full and s.pk != current %} disabled{% endif %}>{{ s.title }}{% if s.capacity %} ({{ s.places_left }} left){% endif %}</option>{% endfor %}
+</select>
+</div>
+{% endfor %}
+<p class="small muted">Changes are kept in this attendee's history.</p>
+<div class="row"><button type="submit" class="btn btn-primary">Save changes</button><a class="btn btn-ghost" href="{% url 'organizer:attendees' org.slug event.pk %}?a={{ attendee.pk }}">Cancel</a></div>
+</form>
+<aside class="side-col card card-pad stack-sm">
+<h2 class="h3">History</h2>
+<ol class="history">{% for log in history %}<li><time>{{ log.created_at|local:event|date_time }}</time><span class="small">{{ log.summary }}{% if log.actor %} · {{ log.actor.get_full_name }}{% endif %}</span></li>{% empty %}<li class="small muted">No edits yet.</li>{% endfor %}</ol>
+</aside>
+</div>
+{% endblock %}

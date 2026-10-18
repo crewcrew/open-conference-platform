@@ -1,0 +1,14 @@
+{% load ocp %}Subject: Your ticket for {{ event.name }}
+
+Hi {{ attendee.first_name }},
+
+{{ order.purchaser_name }} booked you a ticket for {{ event.name }}.
+
+{{ ticket.ticket_type.name }} · {{ ticket.display_id }}
+{% for session in sessions %}{{ session.choice_group|default:"Session" }}: {{ session.title }}, {{ session.starts_at|local:event|long_date }} {{ session.starts_at|local:event|time24 }}{% if session.room %}, {{ session.room }}{% endif %}
+{% endfor %}
+Your ticket and QR code: {{ ticket_url }}
+
+Show the QR code at the door. A screenshot works.
+
+{% include "emails/_footer.txt" %}

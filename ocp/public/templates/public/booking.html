@@ -1,0 +1,70 @@
+{% extends "public/base_public.html" %}
+{% load ocp %}
+{% block title %}Your booking · {{ event.name }}{% endblock %}
+{% block head %}{% if waiting %}<meta http-equiv="refresh" content="3">{% endif %}{% endblock %}
+
+{% block content %}
+<section class="hero" style="background: var(--cobalt)">
+<div class="container" style="padding-top: 40px; padding-bottom: 72px">
+<div class="hero-copy" style="gap: 14px">
+{% if waiting %}
+<p class="pill pill-info" style="align-self: flex-start">Confirming payment</p>
+<h1 style="font-size: clamp(36px, 5vw, 56px)">Just a moment…</h1>
+<p class="hero-lede">We're waiting for the payment provider to confirm order <span class="mono">{{ order.number }}</span>. This page refreshes by itself.</p>
+{% elif order.status == "failed" or order.status == "expired" %}
+<p class="pill pill-danger" style="align-self: flex-start">Not completed</p>
+<h1 style="font-size: clamp(36px, 5vw, 56px)">This order didn't go through.</h1>
+<p class="hero-lede">{{ order.failure_reason|default:"The payment wasn't completed, so no tickets were issued." }}{% if order.refunded_total %} Any money taken is being refunded.{% endif %}</p>
+<a class="btn btn-signal btn-pill btn-lg" style="align-self: flex-start" href="{% url 'public:event' event.slug %}">Back to {{ event.name }}</a>
+{% else %}
+<p class="pill pill-ok" style="align-self: flex-start">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+{% if order.total %}Payment received{% else %}Registration confirmed{% endif %}</p>
+<h1 style="font-size: clamp(36px, 5vw, 56px)">You're in, {{ order.purchaser_first_name }}.</h1>
+<p class="hero-lede">Order <span class="mono">{{ order.number }}</span>{% if order.total %} · {{ order.total|money:order.currency }} paid{% endif %}. Your tickets are below and on their way to {{ order.purchaser_email }}.</p>
+{% endif %}
+</div>
+</div>
+</section>
+
+<div class="container narrow stack-lg" style="margin-top: -40px">
+{% include "components/messages.html" %}
+{% if order.status == "partially_refunded" or order.status == "refunded" or order.status == "cancelled" %}
+<p class="notice notice-warn">Status: {{ order.get_status_display }}{% if order.refunded_total %} · {{ order.refunded_total|money:order.currency }} refunded{% endif %}.</p>
+{% endif %}
+
+{% for ticket in tickets %}
+{% include "public/_ticket_card.html" with ticket=ticket index=forloop.counter total=tickets|length %}
+{% endfor %}
+
+{% if tickets %}
+<div class="row">
+<a class="btn btn-outline-primary btn-pill" href="{% url 'public:calendar' event.slug %}">Add to calendar</a>
+<a class="btn btn-pill" href="{% url 'public:event' event.slug %}">Event page</a>
+</div>
+{% endif %}
+
+{% if open_requests %}
+<section class="card card-pad stack-sm">
+<h2 class="h2">Cancellation requested</h2>
+{% for req in open_requests %}<p class="small ink-2">Sent {{ req.created_at|local:event|date_time }} for {{ req.tickets.count }} ticket{{ req.tickets.count|pluralize }}. The organisers will email you.</p>{% endfor %}
+</section>
+{% endif %}
+
+{% if refund_form %}
+<details class="card card-pad">
+<summary class="h3" style="cursor: pointer; min-height: 44px; display: flex; align-items: center">Can't come any more?</summary>
+<form method="post" class="stack" style="padding-top: 8px">
+{% csrf_token %}
+<p class="small ink-2">Ask the organisers to cancel tickets. What you get back depends on the refund policy.</p>
+{% if event.refund_policy %}<div class="small box-muted">{{ event.refund_policy|linebreaks }}</div>{% endif %}
+{% include "components/field.html" with field=refund_form.tickets %}
+{% include "components/field.html" with field=refund_form.reason %}
+<button type="submit" class="btn btn-pill" style="align-self: flex-start">Send cancellation request</button>
+</form>
+</details>
+{% endif %}
+
+<p class="small muted" style="text-align: center">Keep this page's link private: anyone with it can see these tickets. Need a hand? <a href="mailto:{{ event.contact_email }}">{{ event.contact_email }}</a></p>
+</div>
+{% endblock %}

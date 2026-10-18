@@ -1,0 +1,141 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}Order {{ order.number }}{% endblock %}
+{% block content %}
+<div class="stack-sm">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="{% url 'organizer:orders' org.slug event.pk %}">Orders</a> / <span aria-current="page">{{ order.number }}</span></nav>
+<div class="page-head">
+<div class="row">
+<h1 class="h1">Order <span class="mono" style="font-weight: 500; font-size: 28px">{{ order.number }}</span></h1>
+{% include "organizer/_order_status.html" with status=order.status label=order.get_status_display %}
+</div>
+{% if order.is_confirmed and "edit_attendees" in caps %}
+<form method="post">{% csrf_token %}<button type="submit" name="action" value="resend" class="btn">Resend confirmation and tickets</button></form>
+{% endif %}
+</div>
+</div>
+
+<div class="split">
+<div class="main-col stack-lg">
+<section class="card card-pad stack" aria-labelledby="ord-h">
+<h2 id="ord-h" class="h2">Order details</h2>
+<dl style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 20px" class="small">
+<div><dt class="tiny muted">Purchaser</dt><dd style="font-weight: 600">{{ order.purchaser_name|default:"—" }}</dd><dd class="muted">{{ order.purchaser_email }}</dd>{% if order.purchaser_organisation %}<dd class="muted">{{ order.purchaser_organisation }}</dd>{% endif %}</div>
+<div><dt class="tiny muted">Paid</dt><dd>{% if order.paid_at %}{{ order.paid_at|local:event|date_time }}{% else %}—{% endif %}</dd><dd class="muted">{{ order.payment_provider|default:"—" }}</dd></div>
+<div><dt class="tiny muted">Payment reference</dt><dd class="mono" style="word-break: break-all">{{ order.payment_ref|default:"—" }}</dd></div>
+<div><dt class="tiny muted">News opt-in</dt><dd>{{ order.marketing_consent|yesno:"Yes,No" }}</dd></div>
+</dl>
+{% for label, value in order.purchaser_answers.items %}<p class="small"><span class="muted">{{ label }}:</span> {{ value|default:"—" }}</p>{% endfor %}
+<dl class="lines small" style="padding-top: 14px; border-top: 1px solid var(--line-2)">
+<div><dt>Tickets</dt><dd>{{ order.subtotal|amount }}</dd></div>
+{% if order.discount_total %}<div><dt>Discount{% if order.coupon %} ({{ order.coupon.code }}){% endif %}</dt><dd>−{{ order.discount_total|amount }}</dd></div>{% endif %}
+{% if order.fee_total %}<div><dt>Booking fees</dt><dd>{{ order.fee_total|amount }}</dd></div>{% endif %}
+<div style="font-weight: 600"><dt>Total (incl. {{ event.tax_name }} {{ order.tax_total|amount }})</dt><dd>{{ order.total|money:order.currency }}</dd></div>
+{% if order.refunded_total %}<div><dt>Refunded</dt><dd>−{{ order.refunded_total|amount }}</dd></div>{% endif %}
+</dl>
+{% if order.failure_reason %}<p class="notice notice-warn">{{ order.failure_reason }}</p>{% endif %}
+</section>
+
+<section class="card" aria-labelledby="tix-h">
+<h2 id="tix-h" class="h2" style="padding: 18px 20px 10px">Tickets</h2>
+<div class="table-wrap">
+<table class="table" style="min-width: 560px">
+<thead><tr><th scope="col">Attendee</th><th scope="col">Ticket</th><th scope="col">Sessions</th><th scope="col">Status</th></tr></thead>
+<tbody>
+{% for t in tickets %}
+<tr>
+<th scope="row"><a href="{% url 'organizer:attendees' org.slug event.pk %}?a={{ t.attendee.pk }}">{{ t.attendee.full_name }}</a><span class="tiny muted" style="display: block; font-weight: 400">{{ t.attendee.email }}</span></th>
+<td>{{ t.ticket_type.name }} · {{ t.attendee.paid_price|amount }}<span class="mono tiny muted" style="display: block">{{ t.display_id }}</span></td>
+<td class="small">{% for s in t.attendee.sessions.all %}{{ s.title }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+<td>{% if not t.is_valid %}<span class="pill">{% include "components/icon.html" with name="x" size=13 stroke="2.6" %}Cancelled</span>{% elif t.checked_in_at %}<span class="pill pill-ok">Checked in {{ t.checked_in_at|local:event|time24 }}</span>{% elif open_request and t in open_request.tickets.all %}<span class="pill pill-warn">{% include "components/icon.html" with name="clock" size=13 stroke="2.4" %}Refund requested</span>{% else %}Valid{% endif %}</td>
+</tr>
+{% empty %}
+<tr><td colspan="4" class="empty">No tickets issued{% if order.status == "pending" %} yet: payment hasn't been confirmed{% endif %}.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+
+{% if refunds %}
+<section class="card card-pad stack-sm" aria-labelledby="ref-h">
+<h2 id="ref-h" class="h2">Refunds</h2>
+<ul class="history">
+{% for r in refunds %}
+<li><time>{{ r.created_at|local:event|date_time }}</time><span><strong>{{ r.amount|money:order.currency }}</strong> · {{ r.get_status_display }} · <span class="mono tiny">{{ r.number }}</span>{% if r.note %}<span class="tiny muted" style="display: block">{{ r.note }}</span>{% endif %}{% if r.error %}<span class="tiny" style="display: block; color: var(--danger-ink)">{{ r.error }}</span>{% endif %}
+{% if r.status == "failed" and "refund" in caps %}<form method="post" style="margin-top: 4px">{% csrf_token %}<input type="hidden" name="refund" value="{{ r.pk }}"><button type="submit" name="action" value="retry_refund" class="btn btn-sm">Try the refund again</button></form>{% endif %}</span></li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
+
+<section class="card card-pad stack-sm" aria-labelledby="hist-h">
+<h2 id="hist-h" class="h2">History</h2>
+<ol class="history">
+{% for log in history %}<li><time>{{ log.created_at|local:event|date_time }}</time><span>{{ log.summary }}{% if log.actor %} · {{ log.actor.get_full_name|default:log.actor.email }}{% endif %}</span></li>{% endfor %}
+{% for d in deliveries %}<li><time>{{ d.created_at|local:event|date_time }}</time><span>{{ d.get_kind_display }} email to {{ d.to_email }}: {% if d.status == "failed" %}<strong style="color: var(--danger-ink)">failed</strong> ({{ d.error|truncatechars:80 }}){% else %}{{ d.get_status_display|lower }}{% endif %}</span></li>{% endfor %}
+{% if order.paid_at %}<li><time>{{ order.paid_at|local:event|date_time }}</time><span>Payment confirmed. Order paid and tickets issued.</span></li>{% endif %}
+<li><time>{{ order.created_at|local:event|date_time }}</time><span>Order started.</span></li>
+</ol>
+</section>
+</div>
+
+<aside class="side-col stack">
+{% if open_request %}
+<section class="card card-pad stack-sm">
+<h2 class="h2">Refund request</h2>
+<p class="small ink-2">Asked on {{ open_request.created_at|local:event|long_date }} for {{ open_request.tickets.count }} ticket{{ open_request.tickets.count|pluralize }}.{% if open_request.reason %} Reason: “{{ open_request.reason }}”{% endif %}</p>
+{% if "refund" in caps %}
+<form method="post" class="row">{% csrf_token %}<button type="submit" name="action" value="decline" class="btn btn-sm">Decline request</button></form>
+{% endif %}
+</section>
+{% endif %}
+
+{% if form %}
+<form method="post" class="card" aria-labelledby="refund-h">
+{% csrf_token %}
+<div class="card-head"><h2 id="refund-h" class="h2">Cancel or refund</h2></div>
+<div class="card-body stack">
+{% include "components/field.html" with field=form.tickets %}
+{% if suggestion %}<p class="notice">{% include "components/icon.html" with name="info" stroke="2.2" %}<span>{{ suggestion.explanation }}{% if suggestion.percent %} For the selected tickets that's {{ suggestion.amount|money:order.currency }}.{% endif %}</span></p>{% endif %}
+{% include "components/field.html" with field=form.amount_choice %}
+{% include "components/field.html" with field=form.custom_amount label="Amount ("|add:order.currency|add:")" %}
+{% include "components/field.html" with field=form.note %}
+{% include "components/field.html" with field=form.notify %}
+<div class="box-muted small stack-xs">
+<p style="font-weight: 600">What happens</p>
+<ul style="padding-left: 18px" class="ink-2">
+<li>The chosen tickets stop working at check-in straight away</li>
+<li>Their places, and any session places, are released</li>
+<li>Money goes back to the original payment method{% if event.booking_fee %}. Booking fees aren't refunded{% endif %}</li>
+</ul>
+</div>
+<button type="submit" name="action" value="review" class="btn btn-danger btn-lg">Review cancellation</button>
+<p class="tiny muted">Only owners and administrators can cancel and refund.</p>
+</div>
+</form>
+{% elif order.is_confirmed and "refund" not in caps %}
+<p class="card card-pad small muted">Only owners and administrators can cancel tickets and refund money.</p>
+{% endif %}
+</aside>
+</div>
+
+{% if confirm %}
+<div class="dialog-backdrop">
+<form method="post" class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-h" aria-describedby="dlg-d">
+{% csrf_token %}
+{% for t in confirm.tickets %}<input type="hidden" name="tickets" value="{{ t.pk }}">{% endfor %}
+<input type="hidden" name="amount_choice" value="custom">
+<input type="hidden" name="custom_amount" value="{{ confirm.amount }}">
+<input type="hidden" name="note" value="{{ form.cleaned_data.note }}">
+{% if form.cleaned_data.notify %}<input type="hidden" name="notify" value="on">{% endif %}
+<h2 id="dlg-h" class="display" style="font-size: 24px">{% if confirm.amount %}Refund {{ confirm.amount|money:order.currency }} and cancel {{ confirm.tickets|length }} ticket{{ confirm.tickets|length|pluralize }}?{% else %}Cancel {{ confirm.tickets|length }} ticket{{ confirm.tickets|length|pluralize }} without a refund?{% endif %}</h2>
+<p id="dlg-d" class="ink-2">{% for t in confirm.tickets %}{{ t.attendee.full_name }} ({{ t.display_id }}){% if not forloop.last %}, {% endif %}{% endfor %} will stop working at the door straight away. You can't undo a cancellation.</p>
+<div class="row" style="justify-content: flex-end">
+<a class="btn" href="{{ request.path }}">Go back</a>
+<button type="submit" name="action" value="confirm" class="btn btn-danger" autofocus>Yes, {% if confirm.amount %}refund and {% endif %}cancel</button>
+</div>
+</form>
+</div>
+{% endif %}
+{% endblock %}

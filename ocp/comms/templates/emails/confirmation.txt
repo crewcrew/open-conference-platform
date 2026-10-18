@@ -1,0 +1,21 @@
+{% load ocp %}Subject: Your tickets for {{ event.name }} ({{ order.number }})
+
+Hi {{ order.purchaser_first_name }},
+
+You're booked for {{ event.name }}. Here's your order.
+
+Order {{ order.number }}
+{% for ticket, url in tickets %}
+Ticket {{ forloop.counter }}: {{ ticket.attendee.full_name }} · {{ ticket.ticket_type.name }} · {{ ticket.display_id }}
+{% for session in ticket.attendee.sessions.all %}  {{ session.choice_group|default:"Session" }}: {{ session.title }}, {{ session.starts_at|local:event|long_date }} {{ session.starts_at|local:event|time24 }}
+{% endfor %}  Ticket with QR code: {{ url }}
+{% endfor %}
+{% if order.total %}Paid: {{ order.total|money:order.currency }}{% if order.tax_total %} (includes {{ event.tax_name }} of {{ order.tax_total|money:order.currency }}){% endif %}
+{% if order.discount_total %}Discount: {{ order.discount_total|money:order.currency }}{% if order.coupon %} with {{ order.coupon.code }}{% endif %}
+{% endif %}{% else %}Free registration
+{% endif %}
+View or change your booking: {{ booking_url }}
+
+Show each person's QR code at the door. A screenshot works.
+
+{% include "emails/_footer.txt" %}

@@ -1,0 +1,60 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+<div class="page-head">
+<div class="stack-xs"><h1 class="h1">Reports</h1><p class="muted">Amounts in {{ event.currency }}. Dates and times in {{ event.tz_label }}.</p></div>
+<div class="row">
+<a class="btn" href="{% url 'organizer:orders' org.slug event.pk %}?{{ query_string }}&amp;export=csv">{% include "components/icon.html" with name="download" size=16 stroke="2" %}Orders CSV</a>
+<a class="btn" href="{% url 'organizer:attendees' org.slug event.pk %}?export=csv">{% include "components/icon.html" with name="download" size=16 stroke="2" %}Attendees CSV</a>
+<a class="btn" href="?export=attendance">{% include "components/icon.html" with name="download" size=16 stroke="2" %}Attendance CSV</a>
+</div>
+</div>
+
+<form method="get" class="card card-pad" aria-label="Filters">
+<div class="fields fields-sm" style="align-items: flex-end">
+<div class="field"><label for="r-type">Ticket type</label><select id="r-type" name="ticket_type"><option value="">All types</option>{% for t in ticket_types %}<option value="{{ t.pk }}"{% if params.ticket_type == t.pk|stringformat:"s" %} selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+<div class="field"><label for="r-status">Order status</label><select id="r-status" name="status"><option value="">Any status</option>{% for value, label in statuses %}<option value="{{ value }}"{% if params.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+<div class="field"><label for="r-from">Ordered from</label><input id="r-from" name="from" type="date" value="{{ params.from }}"></div>
+<div class="field"><label for="r-to">Ordered to</label><input id="r-to" name="to" type="date" value="{{ params.to }}"></div>
+<div style="flex: 0 0 auto"><button type="submit" class="btn btn-primary">Apply</button></div>
+</div>
+</form>
+
+<div class="split">
+<section class="side-col card card-pad stack-sm" aria-labelledby="m-h">
+<h2 id="m-h" class="h3">Money</h2>
+<dl class="lines small">
+<div><dt>Ticket sales ({{ money.orders }} order{{ money.orders|pluralize }})</dt><dd>{{ money.revenue|amount }}</dd></div>
+<div><dt>Discounts</dt><dd>−{{ money.discounts|amount }}</dd></div>
+<div><dt>Booking fees</dt><dd>{{ money.fees|amount }}</dd></div>
+<div><dt>Collected</dt><dd>{{ money.collected|amount }}</dd></div>
+<div><dt>Refunds</dt><dd>−{{ money.refunds|amount }}</dd></div>
+<div style="padding-top: 10px; border-top: 2px solid var(--ink); font-weight: 600"><dt>Net proceeds</dt><dd>{{ money.net|amount }}</dd></div>
+<div class="muted"><dt>{{ event.tax_name }} included in net</dt><dd>{{ money.tax|amount }}</dd></div>
+<div class="muted"><dt>Payment provider fees</dt><dd>n/a</dd></div>
+</dl>
+<p class="tiny muted">Provider fees come from your payment provider's own reports.</p>
+</section>
+<section class="main-col card" aria-labelledby="t-h">
+<h2 id="t-h" class="card-head h3">By ticket type</h2>
+<div class="table-wrap">
+<table class="table">
+<thead><tr><th scope="col">Ticket type</th><th scope="col" class="right">Valid</th><th scope="col" class="right">Cancelled</th><th scope="col" class="right">Checked in</th><th scope="col" class="right">Paid (after discount)</th></tr></thead>
+<tbody>
+{% for row in by_type %}<tr><th scope="row">{{ row.type.name }}</th><td class="right num">{{ row.valid }}</td><td class="right num">{{ row.cancelled }}</td><td class="right num">{{ row.checked_in }}</td><td class="right num">{{ row.revenue|amount }}</td></tr>{% endfor %}
+</tbody>
+</table>
+</div>
+{% if by_session %}
+<h2 class="card-head h3" style="border-top: 1px solid var(--line)">Pick-one sessions</h2>
+<div class="table-wrap">
+<table class="table">
+<thead><tr><th scope="col">Session</th><th scope="col" class="right">Booked</th><th scope="col" class="right">Capacity</th></tr></thead>
+<tbody>{% for row in by_session %}<tr><th scope="row">{{ row.session.title }}<span class="tiny muted" style="display: block; font-weight: 400">{{ row.session.choice_group }}</span></th><td class="right num">{{ row.count }}</td><td class="right num">{{ row.session.capacity|default:"—" }}</td></tr>{% endfor %}</tbody>
+</table>
+</div>
+{% endif %}
+</section>
+</div>
+{% endblock %}

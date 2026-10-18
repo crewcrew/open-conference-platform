@@ -1,0 +1,18 @@
+[project]
+name = "open-conference-platform"
+version = "0.1.0"
+description = "Open-source platform for publishing a conference, selling tickets, emailing attendees and running check-in."
+readme = "README.md"
+license = "MIT"
+authors = [{name = "Rahul Singh"}]
+requires-python = ">=3.10"
+dependencies = [
+    "Django>=5.2,<5.3",
+    "segno>=1.6,<2",
+    "whitenoise>=6.9,<7",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.2,<4"]
+
+production = ["gunicorn>=23,<24", "psycopg[binary]>=3.2,<4"]

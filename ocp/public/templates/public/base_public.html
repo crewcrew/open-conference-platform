@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block body %}
+<header class="site-header">
+<div class="container">
+{% if event %}
+<a class="brand" href="{% url 'public:event' event.slug %}"><span class="brand-mark" aria-hidden="true">{{ event.organization.name|first|upper }}</span><span>{{ event.organization.name }}</span></a>
+{% else %}
+<a class="brand" href="{% url 'public:home' %}"><span class="brand-mark" aria-hidden="true">O</span><span>{{ platform_name }}</span></a>
+{% endif %}
+{% block header_nav %}
+<nav class="site-nav" aria-label="Site">
+<a class="accent" href="{% url 'public:booking_lookup' %}">Manage my booking</a>
+</nav>
+{% endblock %}
+</div>
+</header>
+<main id="content">
+{% block content %}{% endblock %}
+</main>
+<footer class="site-footer">
+<div class="container">
+<p>{% if event %}{{ event.organization.name }} · <a href="mailto:{{ event.contact_email }}">{{ event.contact_email }}</a>{% else %}{{ platform_name }}{% endif %}</p>
+<p class="mono">Runs on Open Conference Platform</p>
+</div>
+</footer>
+{% endblock %}

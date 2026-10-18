@@ -1,0 +1,15 @@
+{% extends "organizer/base_org.html" %}
+{% block page_title %}{{ member.user.get_full_name }}{% endblock %}
+{% block content %}
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="{% url 'organizer:team' org.slug %}">Team</a> / {{ member.user.get_full_name|default:member.user.email }}</nav>
+<h1 class="h1">{{ member.user.get_full_name|default:member.user.email }}</h1>
+<form method="post" class="card card-pad-lg stack" style="max-width: 640px">
+{% csrf_token %}
+{% include "components/field.html" with field=form.role %}
+{% include "components/field.html" with field=form.events %}
+<div class="row-between">
+<button type="submit" class="btn btn-primary">Save</button>
+<button type="submit" name="action" value="remove" class="btn btn-danger-text">Remove from team</button>
+</div>
+</form>
+{% endblock %}

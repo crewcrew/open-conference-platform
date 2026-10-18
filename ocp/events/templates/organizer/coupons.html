@@ -1,0 +1,95 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}Coupons{% endblock %}
+{% block content %}
+<div class="page-head">
+<div class="stack-xs">
+<h1 class="h1">Coupons</h1>
+<p class="muted">One coupon per order. Coupons don't combine with other discounts.</p>
+</div>
+<a class="btn btn-primary" href="?new=1">{% include "components/icon.html" with name="plus" size=16 stroke="2.4" %}New coupon</a>
+</div>
+<dl class="kpis">
+<div class="kpi kpi-small"><dt class="small muted">Orders with a coupon</dt><dd class="kpi-value">{{ summary.orders }}</dd></div>
+<div class="kpi kpi-small"><dt class="small muted">Total discount given</dt><dd class="kpi-value">{{ summary.discount|money:event.currency }}</dd></div>
+<div class="kpi kpi-small"><dt class="small muted">Active coupons</dt><dd class="kpi-value">{{ summary.active }} of {{ summary.total }}</dd></div>
+</dl>
+
+<div class="split">
+<div class="main-col stack">
+<section class="card table-wrap" aria-label="All coupons">
+<table class="table" style="min-width: 680px">
+<thead><tr><th scope="col">Code</th><th scope="col">Discount</th><th scope="col">Applies to</th><th scope="col">Valid</th><th scope="col">Used</th><th scope="col">Status</th></tr></thead>
+<tbody>
+{% for c, state in coupons %}
+<tr{% if editing and editing.pk == c.pk %} class="is-selected"{% endif %}>
+<th scope="row" class="mono" style="font-weight: 500"><a href="?edit={{ c.pk }}">{{ c.code }}</a></th>
+<td>{{ c.describe }}</td>
+<td class="small">{% for t in c.ticket_types.all %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+<td class="small">{{ c.starts_at|local:event|short_date|default:"Now" }} – {{ c.ends_at|local:event|short_date|default:"no end" }}</td>
+<td class="num">{{ c.used_count }}{% if c.max_redemptions %} of {{ c.max_redemptions }}{% endif %}</td>
+<td>{% if state == "active" %}<span class="pill pill-ok">{% include "components/icon.html" with name="check" size=12 stroke="3" %}Active</span>{% elif state == "expired" %}<span class="pill">{% include "components/icon.html" with name="clock" size=12 stroke="2.6" %}Expired</span>{% elif state == "disabled" %}<span class="pill">Disabled{% if c.disabled_at %} {{ c.disabled_at|local:event|short_date }}{% endif %}</span>{% elif state == "used_up" %}<span class="pill pill-warn">Used up</span>{% else %}<span class="pill pill-info">Scheduled</span>{% endif %}</td>
+</tr>
+{% empty %}
+<tr><td colspan="6" class="empty">No coupons yet.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</section>
+
+{% if editing %}
+<section class="card" aria-labelledby="red-h">
+<div class="card-head">
+<div><h2 id="red-h" class="h3">Used with <span class="mono">{{ editing.code }}</span></h2><p class="small muted">{{ redemptions|length }} paid order{{ redemptions|length|pluralize }}{% if editing.used_count > redemptions|length %} · {{ editing.used_count|add:"0" }} including checkouts in progress{% endif %}</p></div>
+<a class="small" style="font-weight: 600" href="{% url 'organizer:orders' org.slug event.pk %}?export=csv">Export orders CSV</a>
+</div>
+<div class="table-wrap">
+<table class="table">
+<thead><tr><th scope="col">Order</th><th scope="col">Purchaser</th><th scope="col">Date</th><th scope="col" class="right">Discount</th></tr></thead>
+<tbody>
+{% for r in redemptions %}
+<tr><td><a class="mono" href="{% url 'organizer:order_detail' org.slug event.pk r.order.pk %}">{{ r.order.number }}</a></td><td>{{ r.order.purchaser_name }}</td><td>{{ r.created_at|local:event|short_date }}</td><td class="right num">−{{ r.discount_amount|amount }}</td></tr>
+{% empty %}
+<tr><td colspan="4" class="empty">Not used on a paid order yet.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% endif %}
+</div>
+
+{% if form %}
+<aside class="side-col card" aria-labelledby="cp-h">
+<div class="card-head"><div><p class="tiny muted">{% if editing %}Edit coupon{% else %}New coupon{% endif %}</p><h2 id="cp-h" class="h2 mono" style="font-weight: 500">{{ editing.code|default:"New" }}</h2></div><a class="small" href="{% url 'organizer:coupons' org.slug event.pk %}">Close</a></div>
+<form method="post" class="card-body stack" novalidate>
+{% csrf_token %}
+{% if editing %}<input type="hidden" name="id" value="{{ editing.pk }}">{% endif %}
+{% include "components/field.html" with field=form.code %}
+{% include "components/field.html" with field=form.kind %}
+{% include "components/field.html" with field=form.amount %}
+{% include "components/field.html" with field=form.ticket_types %}
+<div class="fields fields-sm">
+{% include "components/field.html" with field=form.starts_at %}
+{% include "components/field.html" with field=form.ends_at %}
+</div>
+{% include "components/field.html" with field=form.max_redemptions %}
+{% if editing %}<p class="notice">{% include "components/icon.html" with name="info" stroke="2.2" %}<span>Changes only affect new orders. Paid orders keep the discount they got.</span></p>{% endif %}
+<button type="submit" class="btn btn-primary btn-lg">Save</button>
+</form>
+{% if editing %}
+<form method="post" class="card-foot stack-sm">
+{% csrf_token %}
+<input type="hidden" name="id" value="{{ editing.pk }}">
+{% if editing.is_active %}
+<button type="submit" name="action" value="disable" class="btn btn-danger-text" style="align-self: flex-start">Disable coupon</button>
+<p class="tiny ink-2">Stops anyone using it from now on. Its uses stay in your reports. Used coupons can't be deleted.</p>
+{% else %}
+<button type="submit" name="action" value="enable" class="btn" style="align-self: flex-start">Turn back on</button>
+{% endif %}
+</form>
+{% endif %}
+</aside>
+{% endif %}
+</div>
+{% endblock %}

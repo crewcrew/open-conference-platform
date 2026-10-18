@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Set up an organisation · {{ platform_name }}{% endblock %}
+{% block body %}
+<main id="content" class="auth">
+<div class="auth-card stack-lg">
+<a class="brand" href="{% url 'public:home' %}"><span class="brand-mark" aria-hidden="true">O</span><span>{{ platform_name }}</span></a>
+<form method="post" class="card card-pad-lg stack">
+{% csrf_token %}
+<div class="stack-xs">
+<h1 class="h1">Set up an organisation</h1>
+<p class="muted">You'll be its owner, and can invite your team afterwards.</p>
+</div>
+{% include "components/field.html" with field=form.organization %}
+<div class="fields fields-sm">
+{% include "components/field.html" with field=form.first_name label="First name" %}
+{% include "components/field.html" with field=form.last_name label="Last name" %}
+</div>
+{% include "components/field.html" with field=form.email %}
+{% include "components/field.html" with field=form.password %}
+<button type="submit" class="btn btn-primary btn-pill btn-lg">Create organisation</button>
+<p class="small muted">Already have an account? <a href="{% url 'login' %}">Sign in</a></p>
+</form>
+</div>
+</main>
+{% endblock %}

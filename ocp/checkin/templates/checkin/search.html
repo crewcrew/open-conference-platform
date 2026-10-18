@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load ocp %}
+{% block title %}Find by name · {{ event.name }}{% endblock %}
+{% block body_class %}scanner-body{% endblock %}
+{% block body %}
+<main id="content" class="scanner">
+<header class="row" style="min-height: 52px; flex-wrap: nowrap; gap: 8px">
+<a href="{% url 'checkin:scanner' event.pk %}" aria-label="Back to scanner" class="btn btn-ghost" style="color: #fff; width: 44px; padding: 0; margin-left: -10px">{% include "components/icon.html" with name="back" size=22 stroke="2.2" %}</a>
+<div class="stack-xs" style="gap: 0">
+<span class="tiny muted">{{ event.name }}{% if lane %} · {{ lane }}{% endif %}</span>
+<h1 style="font-size: 18px; font-weight: 600">Find by name</h1>
+</div>
+</header>
+
+{% if message %}
+<section class="result result-{{ message.result }}" role="status">
+<p class="result-title">{{ message.label }}</p>
+{% if message.name %}<p class="result-name">{{ message.name }}</p>{% endif %}
+{% if message.first_scan %}<p class="mono small">First scan {{ message.first_scan.time }}{% if message.first_scan.lane %} · {{ message.first_scan.lane }}{% endif %}</p>{% endif %}
+{% if message.reason %}<p>{{ message.reason }}</p>{% endif %}
+</section>
+{% endif %}
+
+<form method="get" class="stack-sm" role="search">
+<input type="hidden" name="lane" value="{{ lane }}">
+<label for="q" class="small" style="font-weight: 600; color: #C9CDD2">Name, order number or ticket ID</label>
+<input id="q" name="q" type="search" value="{{ query }}" class="night-input" autocomplete="off" autofocus>
+</form>
+
+{% if query %}
+<p class="tiny muted">{{ matches|length }} match{{ matches|length|pluralize:"es" }} · showing name, ticket and status only</p>
+<ul class="stack-sm" style="list-style: none; padding: 0">
+{% for a in matches %}
+<li class="night-card">
+<div class="row-between row-top" style="flex-wrap: nowrap">
+<div><p style="font-size: 18px; font-weight: 600">{{ a.full_name }}</p><p class="small muted">{{ a.ticket_type.name }}</p></div>
+{% if not a.ticket.is_valid %}<span class="pill pill-night-bad">{% include "components/icon.html" with name="x" size=13 stroke="3" %}Not valid</span>
+{% elif a.ticket.checked_in_at %}<span class="pill pill-night-ok">{% include "components/icon.html" with name="check" size=13 stroke="3" %}In</span>
+{% else %}<span class="small" style="color: #C9CDD2">Not checked in</span>{% endif %}
+</div>
+{% if not a.ticket.is_valid %}
+<p class="small" style="color: #C9CDD2">Cancelled{% if a.ticket.cancelled_at %} {{ a.ticket.cancelled_at|local:event|long_date }}{% endif %}. Send to the help desk.</p>
+{% elif a.ticket.checked_in_at %}
+<p class="mono small" style="color: #C9CDD2">Checked in {{ a.ticket.checked_in_at|local:event|time24 }}{% if a.ticket.checked_in_lane %} · {{ a.ticket.checked_in_lane }}{% endif %}{% if a.ticket.checked_in_by %} · {{ a.ticket.checked_in_by.first_name }}{% endif %}</p>
+{% else %}
+<form method="post">
+{% csrf_token %}
+<input type="hidden" name="ticket" value="{{ a.ticket.pk }}">
+<input type="hidden" name="q" value="{{ query }}">
+<input type="hidden" name="lane" value="{{ lane }}">
+<button type="submit" class="btn btn-night-signal btn-block">Check in {{ a.first_name }}</button>
+</form>
+{% endif %}
+</li>
+{% empty %}
+<li class="small muted">No one matches. Check the spelling, or send them to the help desk.</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<a href="{% url 'checkin:scanner' event.pk %}" class="btn btn-night" style="margin-top: auto">{% include "components/icon.html" with name="scan" stroke="2" %}Back to scanning</a>
+</main>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  try {
+    var lane = localStorage.getItem("ocp-lane");
+    if (lane) document.querySelectorAll('input[name="lane"]').forEach(function (i) { if (!i.value) i.value = lane; });
+  } catch (e) {}
+})();
+</script>
+{% endblock %}

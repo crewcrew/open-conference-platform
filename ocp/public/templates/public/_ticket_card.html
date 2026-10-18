@@ -1,0 +1,29 @@
+{% load ocp %}
+<article class="ticket-card{% if not ticket.is_valid %} is-cancelled{% endif %}" aria-labelledby="tk-{{ ticket.pk }}">
+<div class="stack-sm" style="padding: 20px 22px">
+<div class="row-between">
+<span class="eyebrow">Ticket {{ index }} of {{ total }}</span>
+<span class="tag">{{ ticket.ticket_type.name }}</span>
+</div>
+<h2 id="tk-{{ ticket.pk }}" class="display" style="font-size: 28px">{{ ticket.attendee.full_name }}</h2>
+<dl style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px">
+<div><dt class="tiny muted">Dates</dt><dd style="font-weight: 600">{% compact_dates event %}</dd></div>
+<div><dt class="tiny muted">Venue</dt><dd style="font-weight: 600">{{ event.venue_name|default:"Online" }}</dd></div>
+{% for session in ticket.attendee.sessions.all %}
+<div style="grid-column: 1 / -1"><dt class="tiny muted">{{ session.choice_group|default:"Session" }}</dt><dd style="font-weight: 600">{{ session.title }}</dd><dd class="tiny muted">{{ session.starts_at|local:event|long_date }} · {{ session.starts_at|local:event|time24 }} {{ event.tz_label }}{% if session.room %} · {{ session.room }}{% endif %}</dd></div>
+{% endfor %}
+</dl>
+</div>
+<div class="stub-perf" aria-hidden="true" style="margin: 0 18px"></div>
+<div class="stack-sm" style="padding: 20px 22px; align-items: center; text-align: center">
+{% if ticket.is_valid %}
+<div class="qr-wrap">{% qr_svg ticket.code "QR code for ticket "|add:ticket.display_id %}</div>
+<p class="mono" style="letter-spacing: 0.06em">{{ ticket.display_id }}</p>
+{% if ticket.checked_in_at %}<p class="pill pill-ok">Checked in {{ ticket.checked_in_at|local:event|time24 }}</p>{% else %}<p class="tiny muted">Show this at the door. A screenshot works too.</p>{% endif %}
+{% else %}
+<p class="pill pill-danger">Cancelled</p>
+<p class="mono muted">{{ ticket.display_id }}</p>
+<p class="tiny muted">This ticket no longer works at the door.</p>
+{% endif %}
+</div>
+</article>

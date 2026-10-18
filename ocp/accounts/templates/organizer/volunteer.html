@@ -1,0 +1,17 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}Check-in{% endblock %}
+{% block content %}
+<h1 class="h1">Check-in</h1>
+<p class="muted">Choose the event you're scanning for.</p>
+<ul style="list-style: none; padding: 0" class="stack">
+{% for e in events %}
+<li class="card card-pad row-between">
+<div><p style="font-weight: 600; font-size: 18px">{{ e.name }}</p><p class="small muted">{% event_dates e %}{% if e.venue_name %} · {{ e.venue_name }}{% endif %}</p></div>
+<a class="btn btn-signal btn-pill" href="{% url 'checkin:scanner' e.pk %}">{% include "components/icon.html" with name="scan" %}Open scanner</a>
+</li>
+{% empty %}
+<li class="card empty">You haven't been assigned to an event yet. Ask the organisers to add you.</li>
+{% endfor %}
+</ul>
+{% endblock %}

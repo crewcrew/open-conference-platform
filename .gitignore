@@ -1,0 +1,23 @@
+.venv/
+.bootstrap/
+__pycache__/
+*.pyc
+.env
+db.sqlite3*
+test_db.sqlite3*
+staticfiles/
+media/
+.DS_Store
+
+.env.*
+!.env.example
+!deploy/production.env.example
+.pytest_cache/
+
+node_modules/
+.output/
+.tanstack/
+dist/
+
+# Local review screenshot, not part of the source distribution.
+docs/frontend-preview.png

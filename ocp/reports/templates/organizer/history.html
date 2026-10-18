@@ -1,0 +1,15 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}History{% endblock %}
+{% block content %}
+<div class="stack-xs"><h1 class="h1">History</h1><p class="muted">Changes to settings, tickets, coupons, refunds, attendees and the team. Times in {{ event.tz_label }}.</p></div>
+<section class="card card-pad">
+<ol class="history">
+{% for log in logs %}
+<li><time>{{ log.created_at|local:event|date_time }}</time><span>{{ log.summary }}{% if log.actor %} <span class="muted">· {{ log.actor.get_full_name|default:log.actor.email }}</span>{% endif %}{% for field, change in log.changes.items %}<span class="tiny muted" style="display: block">{{ field }}: {{ change.0|default:"—" }} → {{ change.1|default:"—" }}</span>{% endfor %}</span></li>
+{% empty %}
+<li class="muted">Nothing recorded yet.</li>
+{% endfor %}
+</ol>
+</section>
+{% endblock %}

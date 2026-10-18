@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load ocp %}
+{% block title %}{% block page_title %}{% endblock %} · {{ org.name|default:platform_name }}{% endblock %}
+{% block body %}
+<div class="shell">
+<nav class="sidebar" aria-label="Organiser">
+{% if org %}
+<a class="org-switch" href="{% url 'organizer:org' org.slug %}">
+<span class="brand-mark" aria-hidden="true" style="width: 30px; height: 30px; font-size: 16px">{{ org.name|first|upper }}</span>
+<span class="grow" style="display: flex; flex-direction: column; line-height: 1.25"><span class="tiny" style="color: var(--night-muted)">Organisation</span><span style="font-weight: 600">{{ org.name }}</span></span>
+</a>
+{% else %}
+<a class="brand" href="{% url 'organizer:home' %}"><span class="brand-mark" aria-hidden="true">O</span><span>{{ platform_name }}</span></a>
+{% endif %}
+
+{% if event %}
+<div class="stack-xs">
+<p class="sidebar-label">Event</p>
+<p style="padding: 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 600; color: #fff">
+<span>{{ event.name }}</span>
+{% if event.is_published %}<span class="pill pill-ok" style="font-size: 12px; padding: 1px 8px">Published</span>{% elif event.is_cancelled %}<span class="pill pill-danger" style="font-size: 12px; padding: 1px 8px">Cancelled</span>{% else %}<span class="pill pill-warn" style="font-size: 12px; padding: 1px 8px">Draft</span>{% endif %}
+</p>
+</div>
+<ul class="nav-list">
+{% url 'organizer:dashboard' org.slug event.pk as u_dash %}
+{% url 'organizer:event_edit' org.slug event.pk as u_setup %}
+{% url 'organizer:attendees' org.slug event.pk as u_att %}
+{% url 'organizer:orders' org.slug event.pk as u_orders %}
+{% url 'organizer:coupons' org.slug event.pk as u_coupons %}
+{% url 'organizer:emails' org.slug event.pk as u_emails %}
+{% url 'checkin:scanner' event.pk as u_scan %}
+{% url 'organizer:reports' org.slug event.pk as u_reports %}
+{% if "view_reports" in caps %}<li><a class="nav-link" href="{{ u_dash }}"{% if nav == "dashboard" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="overview" %}Overview</a></li>{% endif %}
+{% if "manage_events" in caps %}<li><a class="nav-link" href="{{ u_setup }}"{% if nav == "setup" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="setup" %}Event setup</a></li>{% endif %}
+{% if "view_attendees" in caps %}<li><a class="nav-link" href="{{ u_att }}"{% if nav == "attendees" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="people" %}Attendees</a></li>
+<li><a class="nav-link" href="{{ u_orders }}"{% if nav == "orders" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="orders" %}Orders and refunds{% if nav_counts.refunds %}<span class="count">{{ nav_counts.refunds }}</span>{% endif %}</a></li>{% endif %}
+{% if "manage_events" in caps %}<li><a class="nav-link" href="{{ u_coupons }}"{% if nav == "coupons" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="coupon" %}Coupons</a></li>{% endif %}
+{% if "send_comms" in caps %}<li><a class="nav-link" href="{{ u_emails }}"{% if nav == "emails" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="mail" %}Emails{% if nav_counts.emails %}<span class="count">{{ nav_counts.emails }}</span>{% endif %}</a></li>{% endif %}
+{% if "check_in" in caps %}<li><a class="nav-link" href="{{ u_scan }}">{% include "components/icon.html" with name="scan" %}Check-in scanner</a></li>{% endif %}
+{% if "view_reports" in caps %}<li><a class="nav-link" href="{{ u_reports }}"{% if nav == "reports" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="reports" %}Reports</a></li>
+<li><a class="nav-link" href="{% url 'organizer:history' org.slug event.pk %}"{% if nav == "history" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="history" %}History</a></li>{% endif %}
+</ul>
+{% elif org %}
+<ul class="nav-list">
+<li><a class="nav-link" href="{% url 'organizer:org' org.slug %}"{% if nav == "events" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="calendar" %}Events</a></li>
+</ul>
+{% endif %}
+
+<div class="sidebar-foot">
+{% if org and "manage_team" in caps %}<a class="nav-link" href="{% url 'organizer:team' org.slug %}"{% if nav == "team" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="team" %}Team and roles</a>{% endif %}
+{% if org and "manage_org" in caps %}<a class="nav-link" href="{% url 'organizer:org_settings' org.slug %}"{% if nav == "org_settings" %} aria-current="page"{% endif %}>{% include "components/icon.html" with name="setup" %}Organisation</a>{% endif %}
+{% if memberships|length > 1 %}<a class="nav-link" href="{% url 'organizer:home' %}">{% include "components/icon.html" with name="overview" %}Switch organisation</a>{% endif %}
+<p class="who">{{ user.get_full_name|default:user.email }}{% if membership %} · {{ membership.get_role_display }}{% endif %}</p>
+<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="link-button tiny">Sign out</button></form>
+</div>
+</nav>
+
+<main class="main" id="content">
+{% include "components/messages.html" %}
+{% block content %}{% endblock %}
+</main>
+</div>
+{% endblock %}

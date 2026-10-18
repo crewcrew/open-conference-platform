@@ -1,0 +1,47 @@
+{% extends "organizer/base_org.html" %}
+{% block page_title %}Team and roles{% endblock %}
+{% block content %}
+<div class="stack-xs">
+<h1 class="h1">Team and roles</h1>
+<p class="muted">Owners run everything. Administrators can also approve refunds and manage the team. Event managers set up events, attendees and emails. Check-in volunteers only scan tickets for events they're assigned to.</p>
+</div>
+<div class="split">
+<section class="main-col card" aria-labelledby="members-h">
+<h2 id="members-h" class="card-head h2" style="margin: 0">People</h2>
+<div class="table-wrap">
+<table class="table">
+<thead><tr><th scope="col">Name</th><th scope="col">Role</th><th scope="col">Check-in events</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+<tbody>
+{% for m in members %}
+<tr>
+<th scope="row">{{ m.user.get_full_name|default:m.user.email }}<span class="tiny muted" style="display: block; font-weight: 400">{{ m.user.email }}</span></th>
+<td>{{ m.get_role_display }}</td>
+<td class="small">{% if m.role == "volunteer" %}{% for e in m.events.all %}{{ e.name }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">None yet</span>{% endfor %}{% else %}<span class="muted">All</span>{% endif %}</td>
+<td class="right">{% if m.user != user %}<a href="{% url 'organizer:member_edit' org.slug m.pk %}" style="font-weight: 600">Edit</a>{% else %}<span class="tiny muted">You</span>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% if invitations %}
+<h3 class="card-head h3" style="margin: 0; border-top: 1px solid var(--line)">Waiting to accept</h3>
+<ul style="list-style: none; padding: 0">
+{% for inv in invitations %}
+<li class="row-between" style="padding: 12px 20px; border-top: 1px solid var(--line-2)">
+<span>{{ inv.email }} · {{ inv.get_role_display }}</span>
+<form method="post" action="{% url 'organizer:invite_revoke' org.slug inv.pk %}">{% csrf_token %}<button class="btn btn-sm btn-danger-text" type="submit">Withdraw</button></form>
+</li>
+{% endfor %}
+</ul>
+{% endif %}
+</section>
+<form method="post" class="side-col card card-pad stack" aria-labelledby="invite-h">
+{% csrf_token %}
+<h2 id="invite-h" class="h2">Invite someone</h2>
+{% include "components/field.html" with field=invite_form.email %}
+{% include "components/field.html" with field=invite_form.role %}
+{% include "components/field.html" with field=invite_form.events %}
+<button type="submit" class="btn btn-primary">Send invitation</button>
+</form>
+</div>
+{% endblock %}

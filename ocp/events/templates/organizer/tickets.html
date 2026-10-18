@@ -1,0 +1,82 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}Ticket types{% endblock %}
+{% block content %}
+{% include "organizer/_setup_tabs.html" %}
+<div class="split">
+<section class="main-col stack" aria-labelledby="types-h">
+<div class="row-between row-end">
+<div class="stack-xs">
+<h2 id="types-h" class="h2">Ticket types</h2>
+<p class="muted small">Places are held during checkout and only confirmed once payment clears, so tickets can't oversell.</p>
+</div>
+<a class="btn btn-primary" href="?new=1">{% include "components/icon.html" with name="plus" size=16 stroke="2.4" %}Add ticket type</a>
+</div>
+<dl class="kpis">
+<div class="kpi kpi-small"><dt class="small muted">Total capacity</dt><dd class="kpi-value">{{ totals.capacity }}</dd></div>
+<div class="kpi kpi-small"><dt class="small muted">Sold or held</dt><dd class="kpi-value">{{ totals.reserved }}</dd></div>
+</dl>
+<div class="card table-wrap">
+<table class="table" style="min-width: 720px">
+<thead><tr><th scope="col">Ticket type</th><th scope="col" class="right">Price ({{ event.currency }})</th><th scope="col" style="width: 150px">Sold or held</th><th scope="col">On sale</th><th scope="col">Per order</th><th scope="col">Visibility</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+<tbody>
+{% for t in ticket_types %}
+<tr{% if editing and editing.pk == t.pk %} class="is-selected"{% endif %}>
+<th scope="row">{{ t.name }}{% if not t.is_active %}<span class="tiny muted" style="display: block; font-weight: 400">Off sale</span>{% endif %}</th>
+<td class="right num">{% if t.is_free %}Free{% else %}{{ t.price|amount }}{% endif %}</td>
+<td><div class="stack-xs"><span>{{ t.reserved }} / {{ t.quantity }}{% if t.available == 0 %} <span class="muted">· Sold out</span>{% endif %}</span><span class="meter" aria-hidden="true"><span style="width: {{ t.reserved|percent_of:t.quantity }}%"></span></span></div></td>
+<td class="small">{% if t.sale_starts or t.sale_ends %}{{ t.sale_starts|local:event|short_date|default:"Now" }} – {{ t.sale_ends|local:event|short_date|default:"event" }}{% else %}Always{% endif %}<span class="tiny muted" style="display: block">{% with state=t.sale_state %}{% if state == "on_sale" %}On sale{% elif state == "ended" %}Ended{% elif state == "not_started" %}Not started{% elif state == "sold_out" %}Sold out{% else %}Closed{% endif %}{% endwith %}</span></td>
+<td>{{ t.min_per_order }}–{{ t.max_per_order }}</td>
+<td class="small">{% if t.visibility == "hidden" %}Hidden · needs code{% else %}Public{% endif %}</td>
+<td class="right">{% if editing and editing.pk == t.pk %}<span style="font-weight: 600; color: var(--cobalt-dark)">Editing</span>{% else %}<a href="?edit={{ t.pk }}" style="font-weight: 600">Edit</a>{% endif %}</td>
+</tr>
+{% empty %}
+<tr><td colspan="7" class="empty">No ticket types yet. Add at least one before you publish.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<p class="tiny muted">Variations, add-ons, bundles and donation tickets are planned as optional modules.</p>
+</section>
+
+{% if form %}
+<aside class="side-col card" aria-labelledby="edit-h">
+<div class="card-head"><div><p class="tiny muted">{% if editing %}Edit ticket type{% else %}New ticket type{% endif %}</p><h2 id="edit-h" class="h2">{{ editing.name|default:"Untitled" }}</h2></div><a class="small" href="{% url 'organizer:tickets' org.slug event.pk %}">Close</a></div>
+<form method="post" class="card-body stack" novalidate>
+{% csrf_token %}
+{% if editing %}<input type="hidden" name="id" value="{{ editing.pk }}">{% endif %}
+{% include "components/field.html" with field=form.name %}
+{% include "components/field.html" with field=form.description %}
+<div class="fields fields-sm">
+{% include "components/field.html" with field=form.price label="Price ("|add:event.currency|add:")" %}
+{% include "components/field.html" with field=form.quantity %}
+</div>
+{% if editing %}<p class="tiny muted" style="margin-top: -8px">{{ editing.reserved }} sold or held, so quantity can't go below that.</p>{% endif %}
+<div class="fields fields-sm">
+{% include "components/field.html" with field=form.sale_starts %}
+{% include "components/field.html" with field=form.sale_ends %}
+</div>
+<p class="tiny muted" style="margin-top: -8px">Times in {{ event.tz_label }}. Leave empty to start now and run until the event.</p>
+<div class="fields fields-sm">
+{% include "components/field.html" with field=form.min_per_order %}
+{% include "components/field.html" with field=form.max_per_order %}
+</div>
+{% include "components/field.html" with field=form.sessions %}
+{% include "components/field.html" with field=form.visibility %}
+{% include "components/field.html" with field=form.access_code %}
+<div class="fields fields-sm">
+{% include "components/field.html" with field=form.position %}
+</div>
+{% include "components/field.html" with field=form.is_active %}
+<button type="submit" class="btn btn-primary btn-lg">Save</button>
+</form>
+{% if history %}
+<div class="card-foot stack-sm">
+<h3 class="tiny" style="font-weight: 600">Recent changes</h3>
+<ul class="history">{% for log in history %}<li><time>{{ log.created_at|local:event|date_time }}</time><span class="small">{{ log.summary }}{% if log.actor %} · {{ log.actor.get_full_name }}{% endif %}{% for field, change in log.changes.items %}<span class="tiny muted" style="display: block">{{ field }}: {{ change.0|default:"—" }} → {{ change.1|default:"—" }}</span>{% endfor %}</span></li>{% endfor %}</ul>
+</div>
+{% endif %}
+</aside>
+{% endif %}
+</div>
+{% endblock %}

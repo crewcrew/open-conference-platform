@@ -1,0 +1,12 @@
+{% load ocp %}Subject: Your booking links
+
+Hi,
+
+Here are the bookings made with this email address:
+{% for order, url in orders %}
+{{ order.event.name }} · {% event_dates order.event %} · order {{ order.number }}
+{{ url }}
+{% endfor %}
+Keep these links private: anyone with a link can see that booking.
+
+If you didn't ask for this, you can ignore it.

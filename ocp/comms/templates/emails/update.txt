@@ -1,0 +1,10 @@
+Subject: {{ communication.subject }}
+
+{{ message }}
+
+{% if ticket %}Your ticket: {{ ticket.ticket_type.name }} · {{ ticket.display_id }}
+{% endif %}Your booking: {{ booking_url }}
+
+{% include "emails/_footer.txt" %}{% if unsubscribe_url %}
+You're getting this because you asked for news from {{ event.organization.name }}. Unsubscribe: {{ unsubscribe_url }}{% else %}
+You're getting this because you have a ticket for {{ event.name }}.{% endif %}

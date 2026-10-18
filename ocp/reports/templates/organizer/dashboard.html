@@ -1,0 +1,141 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}{{ event.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+<div class="stack-xs">
+<h1 class="h1">{{ event.name }}</h1>
+<p class="ink-2">{% event_dates event %} · {{ event.venue_name|default:"Online" }} · now {{ now|time24 }} {{ event.tz_label }}</p>
+</div>
+<div class="row">
+<a class="btn" href="{% url 'organizer:attendees' org.slug event.pk %}?export=csv">{% include "components/icon.html" with name="download" size=16 stroke="2" %}Export attendees</a>
+{% if "send_comms" in caps %}<a class="btn btn-primary" href="{% url 'organizer:compose' org.slug event.pk %}">{% include "components/icon.html" with name="send" size=16 stroke="2" %}Send an update</a>{% endif %}
+</div>
+</div>
+
+{% if attention %}
+<section class="card" aria-labelledby="attn-h">
+<h2 id="attn-h" class="h3" style="padding: 14px 20px">Needs attention</h2>
+<ul class="attention">
+{% for tone, title, text, target, label in attention %}
+<li>
+<span class="pill {% if tone == 'warn' %}pill-warn{% elif tone == 'danger' %}pill-danger{% else %}pill-info{% endif %}">{% if tone == "info" %}{% include "components/icon.html" with name="info" size=14 stroke="2.4" %}To do{% else %}{% include "components/icon.html" with name="alert" size=14 stroke="2.4" %}{% if tone == "danger" %}Problem{% else %}Warning{% endif %}{% endif %}</span>
+<div><p style="font-weight: 600">{{ title }}</p><p class="small muted">{{ text }}</p></div>
+{% if target == "emails" %}{% url 'organizer:emails' org.slug event.pk as link %}{% elif target == "orders" %}{% url 'organizer:orders' org.slug event.pk as link %}{% else %}{% url 'organizer:event_edit' org.slug event.pk as link %}{% endif %}
+<a class="btn" href="{{ link }}">{{ label }}</a>
+</li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
+
+<dl class="kpis">
+<div class="kpi">
+<dt class="small muted">Tickets issued</dt>
+<dd class="row" style="align-items: baseline; gap: 8px"><span class="kpi-value">{{ issued }}</span><span class="muted">of {{ capacity }}</span></dd>
+<dd class="meter" aria-hidden="true"><span style="width: {{ issued|percent_of:capacity }}%"></span></dd>
+<dd class="tiny muted">{{ remaining }} place{{ remaining|pluralize }} left</dd>
+</div>
+<div class="kpi">
+<dt class="small muted">Checked in</dt>
+<dd class="row" style="align-items: baseline; gap: 8px"><span class="kpi-value">{{ checked_in }}</span><span class="muted">of {{ issued }}</span></dd>
+<dd class="meter meter-ok" aria-hidden="true"><span style="width: {{ checked_in|percent_of:issued }}%"></span></dd>
+<dd class="tiny muted">{{ checked_in|percent_of:issued }}%</dd>
+</div>
+<div class="kpi">
+<dt class="small muted">Ticket sales</dt>
+<dd class="kpi-value">{{ money.revenue|amount }}</dd>
+<dd class="tiny muted">{{ event.currency }} · {{ money.orders }} order{{ money.orders|pluralize }}, before discounts</dd>
+</div>
+<div class="kpi">
+<dt class="small muted">Net proceeds</dt>
+<dd class="kpi-value">{{ money.net|amount }}</dd>
+<dd class="tiny muted">{{ event.currency }} · after discounts and refunds, before provider fees</dd>
+</div>
+</dl>
+
+<div class="split">
+<section class="main-col card card-pad stack" aria-labelledby="reg-h">
+<div class="row-between">
+<h2 id="reg-h" class="h3">Tickets issued per week</h2>
+<a class="small" href="#reg-table" style="font-weight: 600">View as table</a>
+</div>
+{% if bars %}
+<p class="small ink-2" id="bar-readout" aria-live="polite">Hover or tab through the bars to see each week.</p>
+<div class="bars" role="group" aria-label="Tickets issued per week">
+{% for bar in bars %}<button type="button" class="bar" data-readout="Week of {{ bar.week }}: {{ bar.count }} ticket{{ bar.count|pluralize }}" aria-label="Week of {{ bar.week }}: {{ bar.count }} tickets"><span style="height: {{ bar.height }}%"></span></button>{% endfor %}
+</div>
+<div class="bar-labels" aria-hidden="true">{% for bar in bars %}<span>{{ bar.label }}</span>{% endfor %}</div>
+<details id="reg-table"><summary class="small" style="cursor: pointer">Table</summary>
+<table class="table" style="margin-top: 8px"><thead><tr><th scope="col">Week of</th><th scope="col" class="right">Tickets</th></tr></thead><tbody>{% for bar in bars %}<tr><td>{{ bar.week }}</td><td class="right num">{{ bar.count }}</td></tr>{% endfor %}</tbody></table>
+</details>
+{% else %}
+<p class="empty">No tickets yet. Once people register, this shows how sales are going week by week.</p>
+{% endif %}
+</section>
+
+<div class="side-col stack">
+<section class="card card-pad stack" aria-labelledby="types-h">
+<h2 id="types-h" class="h3">By ticket type</h2>
+<ul class="stack" style="list-style: none; padding: 0">
+{% for t, sold in by_type %}
+<li class="stack-xs">
+<div class="row-between"><span>{{ t.name }}{% if not t.is_active %} <span class="tiny muted">(off sale)</span>{% endif %}</span><span class="num small">{{ sold }} / {{ t.quantity }}</span></div>
+<span class="meter meter-lg" aria-hidden="true"><span style="width: {{ sold|percent_of:t.quantity }}%"></span></span>
+</li>
+{% empty %}
+<li class="muted small">No ticket types yet. <a href="{% url 'organizer:tickets' org.slug event.pk %}?new=1">Add one</a></li>
+{% endfor %}
+</ul>
+</section>
+<section class="card card-pad stack-sm" aria-labelledby="door-h">
+<div class="row-between"><h2 id="door-h" class="h3">At the door</h2><a class="small" style="font-weight: 600" href="{% url 'checkin:scanner' event.pk %}">Open scanner</a></div>
+<dl class="lines small">
+{% for lane in door %}<div><dt>{{ lane.lane|default:"No lane given" }}</dt><dd>{{ lane.n }}</dd></div>{% empty %}<div><dt class="muted">No one checked in yet</dt><dd></dd></div>{% endfor %}
+<div style="padding-top: 8px; border-top: 1px solid var(--line-2)"><dt>Found by name, not QR</dt><dd>{{ door_search }}</dd></div>
+<div><dt>Turned away (not valid)</dt><dd>{{ door_invalid }}</dd></div>
+</dl>
+</section>
+</div>
+</div>
+
+<div class="split">
+<section class="side-col card card-pad stack-sm" aria-labelledby="money-h">
+<h2 id="money-h" class="h3">Money <span class="muted" style="font-weight: 400">({{ event.currency }})</span></h2>
+<dl class="lines small">
+<div><dt>Ticket sales</dt><dd>{{ money.revenue|amount }}</dd></div>
+<div><dt>Discounts</dt><dd>−{{ money.discounts|amount }}</dd></div>
+<div><dt>Booking fees</dt><dd>{{ money.fees|amount }}</dd></div>
+<div><dt>Refunds</dt><dd>−{{ money.refunds|amount }}</dd></div>
+<div style="padding-top: 10px; border-top: 2px solid var(--ink); font-weight: 600"><dt>Net proceeds</dt><dd>{{ money.net|amount }}</dd></div>
+<div class="muted"><dt>{{ event.tax_name }} included</dt><dd>{{ money.tax|amount }}</dd></div>
+</dl>
+<p class="tiny muted">Payment provider fees aren't included. Check your provider's dashboard for those.</p>
+</section>
+<section class="main-col card" aria-labelledby="orders-h">
+<div class="card-head"><h2 id="orders-h" class="h3">Latest orders</h2><a class="small" style="font-weight: 600" href="{% url 'organizer:orders' org.slug event.pk %}">All orders</a></div>
+<div class="table-wrap">
+<table class="table">
+<thead><tr><th scope="col">Order</th><th scope="col">Purchaser</th><th scope="col" class="right">Total</th><th scope="col">Status</th></tr></thead>
+<tbody>
+{% for order in latest_orders %}
+<tr><td><a class="mono" href="{% url 'organizer:order_detail' org.slug event.pk order.pk %}">{{ order.number }}</a></td><td>{{ order.purchaser_name|default:"—" }}</td><td class="right num">{{ order.total|amount }}</td><td>{% include "organizer/_order_status.html" with status=order.status label=order.get_status_display %}</td></tr>
+{% empty %}
+<tr><td colspan="4" class="empty">No orders yet.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll(".bars .bar").forEach(function (bar) {
+  function show() { document.getElementById("bar-readout").textContent = bar.getAttribute("data-readout"); }
+  bar.addEventListener("mouseenter", show);
+  bar.addEventListener("focus", show);
+});
+</script>
+{% endblock %}

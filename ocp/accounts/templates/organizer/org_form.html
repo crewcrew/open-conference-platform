@@ -1,0 +1,12 @@
+{% extends "organizer/base_org.html" %}
+{% block page_title %}{% if creating %}New organisation{% else %}Organisation{% endif %}{% endblock %}
+{% block content %}
+<h1 class="h1">{% if creating %}New organisation{% else %}Organisation details{% endif %}</h1>
+<form method="post" class="card card-pad-lg stack" style="max-width: 640px">
+{% csrf_token %}
+{% include "components/field.html" with field=form.name %}
+{% include "components/field.html" with field=form.contact_email %}
+{% include "components/field.html" with field=form.website %}
+<div class="row"><button type="submit" class="btn btn-primary">{% if creating %}Create{% else %}Save{% endif %}</button></div>
+</form>
+{% endblock %}

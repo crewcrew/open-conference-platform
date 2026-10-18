@@ -1,0 +1,87 @@
+{% extends "organizer/base_org.html" %}
+{% block page_title %}{% if creating %}New event{% else %}Setup{% endif %}{% endblock %}
+{% block content %}
+{% if creating %}
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="{% url 'organizer:org' org.slug %}">Events</a> / New event</nav>
+<h1 class="h1">New event</h1>
+{% else %}
+{% include "organizer/_setup_tabs.html" %}
+{% endif %}
+
+<form method="post" class="stack-lg" style="max-width: 880px" novalidate>
+{% csrf_token %}
+{% if form.errors %}<div class="error-summary" role="alert">Some fields need fixing. They're marked below.</div>{% endif %}
+
+<section class="card card-pad-lg stack">
+<h2 class="h2">The basics</h2>
+{% include "components/field.html" with field=form.name %}
+{% include "components/field.html" with field=form.summary %}
+{% include "components/field.html" with field=form.description %}
+{% include "components/field.html" with field=form.slug label="Public link" %}
+<div class="fields">
+{% include "components/field.html" with field=form.visibility %}
+{% include "components/field.html" with field=form.contact_email %}
+</div>
+</section>
+
+<section class="card card-pad-lg stack">
+<h2 class="h2">When</h2>
+<p class="small muted">Enter times as they are at the venue. Attendees see them in the event's time zone, with the zone shown.</p>
+{% include "components/field.html" with field=form.timezone %}
+<div class="fields">
+{% include "components/field.html" with field=form.starts_at %}
+{% include "components/field.html" with field=form.ends_at %}
+</div>
+</section>
+
+<section class="card card-pad-lg stack">
+<h2 class="h2">Where</h2>
+{% include "components/field.html" with field=form.venue_name %}
+{% include "components/field.html" with field=form.venue_address %}
+{% include "components/field.html" with field=form.online_url %}
+{% include "components/field.html" with field=form.accessibility_info %}
+</section>
+
+<section class="card card-pad-lg stack">
+<h2 class="h2">Money</h2>
+<div class="fields fields-sm">
+{% include "components/field.html" with field=form.currency %}
+{% include "components/field.html" with field=form.tax_name %}
+{% include "components/field.html" with field=form.tax_rate %}
+{% include "components/field.html" with field=form.booking_fee %}
+</div>
+{% include "components/field.html" with field=form.prices_include_tax %}
+</section>
+
+<section class="card card-pad-lg stack">
+<h2 class="h2">Refunds</h2>
+{% include "components/field.html" with field=form.refund_policy %}
+<div class="fields fields-sm">
+{% include "components/field.html" with field=form.full_refund_until %}
+{% include "components/field.html" with field=form.partial_refund_until %}
+{% include "components/field.html" with field=form.partial_refund_percent %}
+</div>
+<p class="small muted">The dates suggest an amount when you handle a refund. You can always choose a different amount.</p>
+</section>
+
+<section class="card card-pad-lg stack">
+<h2 class="h2">Checkout and data</h2>
+<div class="fields fields-sm">
+{% include "components/field.html" with field=form.order_prefix %}
+{% include "components/field.html" with field=form.hold_minutes %}
+{% include "components/field.html" with field=form.retention_days %}
+</div>
+</section>
+
+<div class="row"><button type="submit" class="btn btn-primary btn-lg">{% if creating %}Create event{% else %}Save changes{% endif %}</button></div>
+</form>
+
+{% if not creating and not event.is_cancelled %}
+<form method="post" action="{% url 'organizer:event_status' org.slug event.pk %}" class="card card-pad stack-sm" style="max-width: 880px; border-color: var(--danger-tint)" onsubmit="return confirm('Cancel this event? Ticket sales stop straight away. Refunds are handled separately.');">
+{% csrf_token %}
+<h2 class="h3">Cancel the event</h2>
+<p class="small ink-2">Stops sales and tells visitors the event is cancelled. Existing tickets stay until you refund them from Orders.</p>
+<button type="submit" name="action" value="cancel" class="btn btn-danger-text" style="align-self: flex-start">Cancel event</button>
+</form>
+{% endif %}
+{% endblock %}

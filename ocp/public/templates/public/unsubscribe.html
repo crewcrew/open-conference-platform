@@ -1,0 +1,14 @@
+{% extends "public/base_public.html" %}
+{% block title %}Unsubscribe{% endblock %}
+{% block content %}
+<div class="container narrow stack-lg" style="padding-top: 48px; max-width: 520px">
+{% if done %}
+<h1 class="h1">You're unsubscribed</h1>
+<p class="ink-2">We won't send news to {{ email }} again. You'll still get tickets and updates for events you book.</p>
+{% else %}
+<h1 class="h1">Stop news emails?</h1>
+<p class="ink-2">We'll stop sending news and promotions to {{ email }}. Tickets and updates for events you book still arrive.</p>
+<form method="post">{% csrf_token %}<button type="submit" class="btn btn-primary btn-pill">Unsubscribe</button></form>
+{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+<div class="stack-sm">
+<nav class="breadcrumb" aria-label="Breadcrumb"><a href="{% url 'organizer:org' org.slug %}">Events</a> / <span>{{ event.name }}</span> / <span aria-current="page">Setup</span></nav>
+<div class="page-head">
+<div class="row">
+<h1 class="h1">{{ event.name }}</h1>
+{% if event.is_published %}<span class="pill pill-ok">Published · {% if event.visibility == "public" %}Public{% else %}Unlisted{% endif %}</span>{% elif event.is_cancelled %}<span class="pill pill-danger">Cancelled</span>{% else %}<span class="pill pill-warn">Draft</span>{% endif %}
+</div>
+<div class="row">
+<a class="btn" href="{% url 'public:event' event.slug %}" target="_blank" rel="noopener">{% if event.is_published %}View public page{% else %}Preview{% endif %} {% include "components/icon.html" with name="external" size=16 stroke="2" %}</a>
+<form method="post" action="{% url 'organizer:event_duplicate' org.slug event.pk %}">{% csrf_token %}<button type="submit" class="btn">Duplicate</button></form>
+{% if not event.is_cancelled %}
+<form method="post" action="{% url 'organizer:event_status' org.slug event.pk %}">{% csrf_token %}
+{% if event.is_published %}<button type="submit" name="action" value="unpublish" class="btn">Unpublish</button>{% else %}<button type="submit" name="action" value="publish" class="btn btn-primary">Publish</button>{% endif %}
+</form>
+{% endif %}
+</div>
+</div>
+</div>
+<nav class="tabs" aria-label="Setup sections">
+<ul>
+<li><a href="{% url 'organizer:event_edit' org.slug event.pk %}"{% if tab == "event_edit" %} aria-current="page"{% endif %}>Details and policies</a></li>
+<li><a href="{% url 'organizer:sessions' org.slug event.pk %}"{% if tab == "sessions" %} aria-current="page"{% endif %}>Schedule and sessions</a></li>
+<li><a href="{% url 'organizer:tickets' org.slug event.pk %}"{% if tab == "tickets" %} aria-current="page"{% endif %}>Tickets</a></li>
+<li><a href="{% url 'organizer:questions' org.slug event.pk %}"{% if tab == "questions" %} aria-current="page"{% endif %}>Registration form</a></li>
+<li><a href="{% url 'organizer:coupons' org.slug event.pk %}">Coupons</a></li>
+</ul>
+</nav>

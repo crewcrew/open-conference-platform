@@ -1,0 +1,16 @@
+{% extends "public/base_public.html" %}
+{% block title %}Manage my booking{% endblock %}
+{% block content %}
+<div class="container narrow stack-lg" style="padding-top: 48px; max-width: 520px">
+{% include "components/messages.html" %}
+<div class="stack-sm">
+<h1 class="h1">Manage my booking</h1>
+<p class="ink-2">Enter the email you booked with. We'll send a secure link to each of your bookings.</p>
+</div>
+<form method="post" class="card card-pad-lg stack">
+{% csrf_token %}
+{% include "components/field.html" with field=form.email %}
+<button type="submit" class="btn btn-primary btn-pill">Send my links</button>
+</form>
+</div>
+{% endblock %}

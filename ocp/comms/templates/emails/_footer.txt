@@ -1,0 +1,5 @@
+--
+{{ event.name }}
+{{ event_dates }}{% if event.venue_name %} · {{ event.venue_name }}{% endif %}
+Add to your calendar: {{ calendar_url }}
+Questions? Email {{ event.contact_email }}

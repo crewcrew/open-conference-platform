@@ -1,0 +1,47 @@
+{% extends "organizer/base_org.html" %}
+{% block page_title %}Registration form{% endblock %}
+{% block content %}
+{% include "organizer/_setup_tabs.html" %}
+<div class="split">
+<section class="main-col stack" aria-labelledby="q-h">
+<div class="row-between row-end">
+<div class="stack-xs">
+<h2 id="q-h" class="h2">Registration questions</h2>
+<p class="muted small">Every ticket always asks for name and email. Add anything else you need, like dietary requirements. Only ask for what you'll use.</p>
+</div>
+<a class="btn btn-primary" href="?new=1">{% include "components/icon.html" with name="plus" size=16 stroke="2.4" %}Add question</a>
+</div>
+<div class="card table-wrap">
+<table class="table">
+<thead><tr><th scope="col">Question</th><th scope="col">Type</th><th scope="col">Asked of</th><th scope="col">Required</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+<tbody>
+<tr><th scope="row">First name, last name, email</th><td>Short text</td><td>Purchaser and each attendee</td><td>Yes</td><td></td></tr>
+{% for q in questions %}
+<tr{% if editing and editing.pk == q.pk %} class="is-selected"{% endif %}><th scope="row">{{ q.label }}</th><td>{{ q.get_kind_display }}</td><td>{{ q.get_applies_to_display }}</td><td>{{ q.required|yesno:"Yes,No" }}</td><td class="right"><a href="?edit={{ q.pk }}" style="font-weight: 600">Edit</a></td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% if form %}
+<aside class="side-col card" aria-labelledby="edit-h">
+<div class="card-head"><h2 id="edit-h" class="h2">{% if editing %}Edit question{% else %}New question{% endif %}</h2><a class="small" href="{% url 'organizer:questions' org.slug event.pk %}">Close</a></div>
+<form method="post" class="card-body stack" novalidate>
+{% csrf_token %}
+{% if editing %}<input type="hidden" name="id" value="{{ editing.pk }}">{% endif %}
+{% include "components/field.html" with field=form.label %}
+{% include "components/field.html" with field=form.kind %}
+{% include "components/field.html" with field=form.options %}
+{% include "components/field.html" with field=form.applies_to %}
+{% include "components/field.html" with field=form.help_text %}
+{% include "components/field.html" with field=form.required %}
+{% include "components/field.html" with field=form.position %}
+<div class="row-between">
+<button type="submit" class="btn btn-primary">Save question</button>
+{% if editing %}<button type="submit" name="action" value="delete" class="btn btn-danger-text" formnovalidate>Remove</button>{% endif %}
+</div>
+</form>
+</aside>
+{% endif %}
+</div>
+{% endblock %}

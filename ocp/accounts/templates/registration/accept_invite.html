@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Join {{ invitation.organization.name }}{% endblock %}
+{% block body %}
+<main id="content" class="auth">
+<div class="auth-card stack-lg">
+<div class="card card-pad-lg stack">
+<div class="stack-xs">
+<p class="eyebrow">Invitation</p>
+<h1 class="h1">Join {{ invitation.organization.name }}</h1>
+<p class="ink-2">You've been invited as {{ invitation.get_role_display|lower }}.</p>
+</div>
+{% if form %}
+<form method="post" class="stack">
+{% csrf_token %}
+<div class="fields fields-sm">
+{% include "components/field.html" with field=form.first_name label="First name" %}
+{% include "components/field.html" with field=form.last_name label="Last name" %}
+</div>
+{% include "components/field.html" with field=form.email %}
+{% include "components/field.html" with field=form.password %}
+<button type="submit" class="btn btn-primary btn-pill btn-lg">Create account and join</button>
+</form>
+<p class="small muted">Already have an account with {{ invitation.email }}? <a href="{% url 'login' %}?next={{ request.path|urlencode }}">Sign in first</a></p>
+{% else %}
+<form method="post">{% csrf_token %}<button type="submit" class="btn btn-primary btn-pill btn-lg btn-block">Join {{ invitation.organization.name }}</button></form>
+{% endif %}
+</div>
+</div>
+</main>
+{% endblock %}

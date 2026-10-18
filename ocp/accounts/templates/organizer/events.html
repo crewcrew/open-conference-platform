@@ -1,0 +1,31 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}Events{% endblock %}
+{% block content %}
+<div class="page-head">
+<div class="stack-xs">
+<h1 class="h1">Events</h1>
+<p class="muted">{{ org.name }}</p>
+</div>
+{% if "manage_events" in caps %}<a class="btn btn-primary" href="{% url 'organizer:event_create' org.slug %}">{% include "components/icon.html" with name="plus" stroke="2.4" size=16 %}New event</a>{% endif %}
+</div>
+<section class="card">
+<div class="table-wrap">
+<table class="table">
+<thead><tr><th scope="col">Event</th><th scope="col">Dates</th><th scope="col">Status</th><th scope="col" class="right">Tickets issued</th></tr></thead>
+<tbody>
+{% for e in events %}
+<tr>
+<th scope="row"><a href="{% url 'organizer:dashboard' org.slug e.pk %}">{{ e.name }}</a><span class="tiny muted" style="display: block; font-weight: 400">/e/{{ e.slug }}/</span></th>
+<td>{% event_dates e %}</td>
+<td>{% if e.is_published %}<span class="pill pill-ok">Published · {{ e.get_visibility_display|truncatewords:1 }}</span>{% elif e.is_cancelled %}<span class="pill pill-danger">Cancelled</span>{% else %}<span class="pill pill-warn">Draft</span>{% endif %}</td>
+<td class="right num">{{ e.issued }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="4" class="empty">No events yet. Create one to start setting up sessions and tickets.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% endblock %}

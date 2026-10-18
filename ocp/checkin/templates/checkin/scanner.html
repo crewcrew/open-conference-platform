@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static ocp %}
+{% block title %}Check-in · {{ event.name }}{% endblock %}
+{% block body_class %}scanner-body{% endblock %}
+{% block body %}
+<main id="content" class="scanner" data-scan-url="{% url 'checkin:scan' event.pk %}" data-event="{{ event.pk }}" data-csrf="{{ csrf_token }}">
+<header class="row-between" style="min-height: 52px; flex-wrap: nowrap">
+<div class="stack-xs" style="gap: 0; min-width: 0">
+<span class="tiny muted">{{ event.name }} · {{ event.tz_label }}</span>
+<h1 style="font-size: 18px; font-weight: 600">Check-in <span id="lane-label"></span></h1>
+</div>
+<span id="net" class="status-pill" role="status"><span class="dot" aria-hidden="true"></span><span id="net-text">Online</span></span>
+</header>
+
+<p id="offline-note" class="notice notice-warn" hidden>No connection. Keep scanning: scans are saved on this phone and checked when you're back online.</p>
+
+<div class="camera">
+<video id="video" playsinline muted hidden></video>
+<div class="frame" aria-hidden="true"><span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span></div>
+<button type="button" id="start-camera" class="btn btn-night-signal" style="position: absolute; padding: 0 24px">Start camera</button>
+<p class="camera-hint" id="camera-hint">Hold the ticket's QR code inside the square</p>
+</div>
+
+<section id="result" class="result result-idle" aria-live="assertive" aria-atomic="true">
+<p style="font-weight: 600">Ready to scan</p>
+<p class="small">Results show here. Green means let them in.</p>
+</section>
+
+<form id="manual" class="row" style="flex-wrap: nowrap" autocomplete="off">
+<label for="manual-code" class="sr-only">Ticket code</label>
+<input id="manual-code" class="night-input" style="min-height: 44px; font-size: 15px; border-width: 1px; border-color: var(--night-line)" placeholder="Or type or scan a code here">
+<button type="submit" class="btn btn-night" style="min-height: 44px; border-width: 1px">Check</button>
+</form>
+
+<div style="margin-top: auto" class="stack-sm">
+<p class="row-between small muted"><span><strong id="stat-in" class="num" style="color: #fff">{{ stats.checked_in }}</strong> in</span><span id="queue-text"></span><span><strong id="stat-left" class="num" style="color: #fff">{{ stats.to_go }}</strong> to go</span></p>
+<div class="row" style="flex-wrap: nowrap">
+<a id="search-link" href="{% url 'checkin:search' event.pk %}" class="btn btn-night grow" style="flex: 1 1 0">{% include "components/icon.html" with name="search" stroke="2" %}Find by name</a>
+<button type="button" id="next" class="btn btn-night-signal grow" style="flex: 1 1 0">Scan next</button>
+</div>
+<details class="small muted">
+<summary style="cursor: pointer; min-height: 40px; display: flex; align-items: center">This device</summary>
+<div class="stack-sm" style="padding: 8px 0">
+<label for="lane" class="tiny">Lane or door name</label>
+<input id="lane" class="night-input" style="min-height: 44px; font-size: 15px; border-width: 1px; border-color: var(--night-line)" placeholder="e.g. Main entrance, lane 2">
+<p class="tiny">Signed in as {{ user.get_full_name|default:user.email }}. <a href="{% url 'organizer:home' %}">Back to organiser pages</a></p>
+</div>
+</details>
+</div>
+</main>
+{% endblock %}
+{% block scripts %}<script src="{% static 'checkin/scanner.js' %}"></script>{% endblock %}

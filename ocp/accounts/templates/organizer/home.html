@@ -1,0 +1,17 @@
+{% extends "organizer/base_org.html" %}
+{% block page_title %}Your organisations{% endblock %}
+{% block content %}
+<div class="page-head">
+<h1 class="h1">Your organisations</h1>
+<a class="btn btn-primary" href="{% url 'organizer:org_create' %}">{% include "components/icon.html" with name="plus" stroke="2.4" size=16 %}New organisation</a>
+</div>
+<ul class="card" style="list-style: none; padding: 0">
+{% for m in memberships %}
+<li style="padding: 16px 20px; border-top: 1px solid var(--line-2)" class="row-between">
+<div><a href="{% url 'organizer:org' m.organization.slug %}" style="font-weight: 600; font-size: 17px">{{ m.organization.name }}</a><p class="small muted">{{ m.get_role_display }}</p></div>
+</li>
+{% empty %}
+<li class="empty">You're not part of an organisation yet. Create one, or ask a team owner to invite you.</li>
+{% endfor %}
+</ul>
+{% endblock %}

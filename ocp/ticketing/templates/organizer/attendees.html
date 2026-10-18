@@ -1,0 +1,97 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}Attendees{% endblock %}
+{% block content %}
+<div class="page-head">
+<div class="stack-xs">
+<h1 class="h1">Attendees</h1>
+<p class="muted">{{ total }} attendee{{ total|pluralize }} · {{ checked_in }} checked in{% if failed_emails %} · <a href="{% url 'organizer:emails' org.slug event.pk %}">{{ failed_emails }} email{{ failed_emails|pluralize }} failed</a>{% endif %}</p>
+</div>
+<div class="row">
+{% if "send_comms" in caps %}<a class="btn" href="{% url 'organizer:compose' org.slug event.pk %}">{% include "components/icon.html" with name="send" size=16 stroke="2" %}Email attendees</a>{% endif %}
+<a class="btn btn-primary" href="?{{ query_string }}&amp;export=csv">{% include "components/icon.html" with name="download" size=16 stroke="2" %}Export CSV</a>
+</div>
+</div>
+
+<form method="get" class="card card-pad stack-sm" role="search">
+<div class="fields fields-sm" style="align-items: flex-end">
+<div class="field" style="flex: 2 1 240px"><label for="f-q">Search</label><input id="f-q" name="q" type="search" value="{{ params.q }}" placeholder="Name, email, order or ticket ID"></div>
+<div class="field"><label for="f-type">Ticket type</label><select id="f-type" name="ticket_type"><option value="">All types</option>{% for t in ticket_types %}<option value="{{ t.pk }}"{% if params.ticket_type == t.pk|stringformat:"s" %} selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+<div class="field"><label for="f-session">Session</label><select id="f-session" name="session"><option value="">All sessions</option>{% for s in sessions %}<option value="{{ s.pk }}"{% if params.session == s.pk|stringformat:"s" %} selected{% endif %}>{{ s.title }}</option>{% endfor %}</select></div>
+<div class="field"><label for="f-status">Order status</label><select id="f-status" name="status"><option value="">Any status</option>{% for value, label in statuses %}<option value="{{ value }}"{% if params.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+<div class="field"><label for="f-att">Attendance</label><select id="f-att" name="attendance"><option value="">Anyone</option><option value="checked_in"{% if params.attendance == "checked_in" %} selected{% endif %}>Checked in</option><option value="not_checked_in"{% if params.attendance == "not_checked_in" %} selected{% endif %}>Not checked in</option><option value="cancelled"{% if params.attendance == "cancelled" %} selected{% endif %}>Cancelled tickets</option></select></div>
+<div style="flex: 0 0 auto"><button type="submit" class="btn btn-primary">Filter</button></div>
+</div>
+<p class="small muted"><strong style="color: var(--ink)">{{ page_obj.paginator.count }}</strong> match{% if active_filters %} · <a href="{% url 'organizer:attendees' org.slug event.pk %}" style="font-weight: 600">Clear filters</a>{% endif %}</p>
+</form>
+
+<div class="split">
+<section class="main-col card" aria-label="Attendee list">
+<div class="table-wrap">
+<table class="table" style="min-width: 720px">
+<thead><tr><th scope="col">Attendee</th><th scope="col">Ticket</th><th scope="col">Order</th><th scope="col">Ticket email</th><th scope="col">Checked in</th></tr></thead>
+<tbody>
+{% for a, delivery in rows %}
+<tr{% if selected and selected.pk == a.pk %} class="is-selected"{% endif %}>
+<th scope="row" style="font-weight: 400"><a href="?{{ query_string }}&amp;a={{ a.pk }}" style="font-weight: 600; color: var(--ink)">{{ a.full_name }}</a><span class="muted" style="display: block">{{ a.email }}</span></th>
+<td>{{ a.ticket_type.name }}{% for s in a.sessions.all %}<span class="tiny muted" style="display: block">{{ s.title|truncatechars:34 }}</span>{% endfor %}</td>
+<td><span class="mono">{{ a.order.number }}</span><span style="display: block" class="{% if a.order.status == 'refunded' or a.order.status == 'partially_refunded' %}{% else %}muted{% endif %}">{{ a.order.get_status_display }}</span></td>
+<td>{% if not delivery %}<span class="muted">—</span>{% elif delivery.status == "failed" %}<span class="pill pill-warn">{% include "components/icon.html" with name="alert" size=13 stroke="2.4" %}Didn't send</span><a class="tiny" style="display: block; font-weight: 600; margin-top: 2px" href="?{{ query_string }}&amp;a={{ a.pk }}">Fix and resend</a>{% else %}{{ delivery.get_status_display }}{% endif %}</td>
+<td>{% if not a.ticket.is_valid %}<span class="muted">Ticket cancelled</span>{% elif a.ticket.checked_in_at %}<span class="num">{{ a.ticket.checked_in_at|local:event|time24 }}</span> <span class="muted small">{{ a.ticket.checked_in_lane }}</span>{% else %}<span class="muted">Not yet</span>{% endif %}</td>
+</tr>
+{% empty %}
+<tr><td colspan="5" class="empty">No attendees match.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<div style="padding: 10px 16px; border-top: 1px solid var(--line)">{% include "organizer/_pager.html" %}{% if page_obj.paginator.num_pages <= 1 %}<p class="small muted">Showing {{ page_obj.paginator.count }}</p>{% endif %}</div>
+</section>
+
+{% if selected %}
+<aside class="side-col card" aria-labelledby="det-h">
+<div class="card-head">
+<div><h2 id="det-h" class="h2">{{ selected.full_name }}</h2><p class="small muted">Booked by {{ selected.order.purchaser_name }} · <a class="mono" href="{% url 'organizer:order_detail' org.slug event.pk selected.order.pk %}">{{ selected.order.number }}</a></p></div>
+<a class="small" href="?{{ query_string }}">Close</a>
+</div>
+<div class="card-body stack">
+{% if not selected.ticket.is_valid %}<p class="notice notice-error">Ticket cancelled{% if selected.ticket.cancelled_at %} {{ selected.ticket.cancelled_at|local:event|long_date }}{% endif %}.</p>
+{% elif selected.ticket.checked_in_at %}<p class="notice notice-ok">{% include "components/icon.html" with name="check" size=16 stroke="2.6" %}<span>Checked in {{ selected.ticket.checked_in_at|local:event|time24 }}{% if selected.ticket.checked_in_by %} by {{ selected.ticket.checked_in_by.get_full_name }}{% endif %}{% if selected.ticket.checked_in_lane %}, {{ selected.ticket.checked_in_lane }}{% endif %}</span></p>{% endif %}
+<dl style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px" class="small">
+<div style="grid-column: 1 / -1"><dt class="tiny muted">Email</dt><dd>{{ selected.email }}</dd></div>
+<div><dt class="tiny muted">Ticket</dt><dd>{{ selected.ticket_type.name }}</dd></div>
+<div><dt class="tiny muted">Ticket ID</dt><dd class="mono">{{ selected.ticket.display_id }}</dd></div>
+{% for s in selected.sessions.all %}<div style="grid-column: 1 / -1"><dt class="tiny muted">{{ s.choice_group|default:"Session" }}</dt><dd>{{ s.title }}</dd></div>{% endfor %}
+{% for label, value in selected.answers.items %}<div style="grid-column: 1 / -1"><dt class="tiny muted">{{ label }}</dt><dd>{% if value is True %}Yes{% elif value is False %}No{% else %}{{ value|default:"—" }}{% endif %}</dd></div>{% endfor %}
+</dl>
+{% if "edit_attendees" in caps %}
+<div class="row">
+<a class="btn btn-primary" href="{% url 'organizer:attendee_edit' org.slug event.pk selected.pk %}">Edit details</a>
+{% if selected.ticket.is_valid %}<form method="post" action="{% url 'organizer:attendee_resend' org.slug event.pk selected.pk %}">{% csrf_token %}<button type="submit" class="btn">Resend ticket</button></form>{% endif %}
+</div>
+{% endif %}
+{% if selected.ticket.is_valid and not selected.ticket.checked_in_at and "check_in" in caps %}
+<form method="post" action="{% url 'organizer:manual_check_in' org.slug event.pk selected.pk %}">{% csrf_token %}<button type="submit" class="btn btn-sm">Check in at the desk</button></form>
+{% endif %}
+{% for d in selected_failed %}
+<form method="post" action="{% url 'organizer:delivery_retry' org.slug event.pk d.pk %}" class="box-muted stack-sm">
+{% csrf_token %}
+<input type="hidden" name="next" value="{{ request.get_full_path }}">
+<p class="small" style="color: var(--warn-ink); font-weight: 600">{{ d.get_kind_display }} to {{ d.to_email }} didn't send.</p>
+<p class="tiny muted">{{ d.error|truncatechars:140 }}</p>
+<div class="field"><label for="retry-{{ d.pk }}">Send to</label><input id="retry-{{ d.pk }}" name="email" type="email" value="{{ d.to_email }}"></div>
+<button type="submit" class="btn btn-sm" style="align-self: flex-start">Fix and resend</button>
+</form>
+{% endfor %}
+</div>
+{% if selected_history %}
+<div class="card-foot stack-sm">
+<h3 class="small" style="font-weight: 600">History</h3>
+<ol class="history">{% for log in selected_history %}<li><time>{{ log.created_at|local:event|date_time }}</time><span class="small">{{ log.summary }}{% if log.actor %} · {{ log.actor.get_full_name }}{% endif %}{% for field, change in log.changes.items %}<span class="tiny muted" style="display: block">{{ field }}: {{ change.0|default:"—" }} → {{ change.1|default:"—" }}</span>{% endfor %}</span></li>{% endfor %}
+{% if selected.ticket %}<li><time>{{ selected.ticket.created_at|local:event|date_time }}</time><span class="small">Ticket issued after payment confirmed</span></li>{% endif %}</ol>
+</div>
+{% endif %}
+</aside>
+{% endif %}
+</div>
+{% endblock %}

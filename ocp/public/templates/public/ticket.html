@@ -1,0 +1,13 @@
+{% extends "public/base_public.html" %}
+{% block title %}{{ ticket.attendee.full_name }} · {{ event.name }}{% endblock %}
+{% block content %}
+<div class="container narrow stack-lg" style="padding-top: 32px; max-width: 480px">
+<div class="stack-xs">
+<p class="eyebrow">{{ event.name }}</p>
+<h1 class="display" style="font-size: 32px">Your ticket</h1>
+</div>
+{% include "public/_ticket_card.html" with ticket=ticket index=1 total=1 %}
+<a class="btn btn-outline-primary btn-pill" href="{% url 'public:calendar' event.slug %}">Add to calendar</a>
+<p class="small muted" style="text-align: center">Need a hand? <a href="mailto:{{ event.contact_email }}">{{ event.contact_email }}</a></p>
+</div>
+{% endblock %}

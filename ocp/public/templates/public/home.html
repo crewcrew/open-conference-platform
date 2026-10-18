@@ -1,0 +1,23 @@
+{% extends "public/base_public.html" %}
+{% block title %}{{ platform_name }}{% endblock %}
+{% block header_nav %}
+<nav class="site-nav" aria-label="Site">
+<a href="{% url 'public:booking_lookup' %}">Manage my booking</a>
+<a class="accent" href="{% url 'login' %}">Organiser sign in</a>
+</nav>
+{% endblock %}
+{% block content %}
+<section class="hero">
+<div class="container">
+<div class="hero-copy">
+<p class="eyebrow">Open-source event platform</p>
+<h1>Run your conference in one place.</h1>
+<p class="hero-lede">Publish the event, sell tickets, email attendees and check people in at the door, with data you own and can export.</p>
+<div class="row">
+<a class="btn btn-signal btn-pill btn-lg" href="{% url 'signup' %}">Set up an organisation</a>
+<a class="btn btn-on-dark btn-pill btn-lg" href="{% url 'login' %}">Sign in</a>
+</div>
+</div>
+</div>
+</section>
+{% endblock %}

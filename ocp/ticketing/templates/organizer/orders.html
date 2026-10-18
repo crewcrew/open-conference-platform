@@ -1,0 +1,57 @@
+{% extends "organizer/base_org.html" %}
+{% load ocp %}
+{% block page_title %}Orders{% endblock %}
+{% block content %}
+<div class="page-head">
+<div class="stack-xs">
+<h1 class="h1">Orders and refunds</h1>
+<p class="muted">{{ page_obj.paginator.count }} order{{ page_obj.paginator.count|pluralize }}</p>
+</div>
+<a class="btn" href="?{{ request.GET.urlencode }}&amp;export=csv">{% include "components/icon.html" with name="download" size=16 stroke="2" %}Export CSV</a>
+</div>
+
+{% if open_requests or failed_refunds %}
+<section class="card" aria-labelledby="req-h">
+<h2 id="req-h" class="h3" style="padding: 14px 20px">Waiting for you</h2>
+<ul class="attention">
+{% for req in open_requests %}
+<li><span class="pill pill-info">{% include "components/icon.html" with name="info" size=14 stroke="2.4" %}Refund request</span><div><p style="font-weight: 600">{{ req.order.purchaser_name }} · <span class="mono">{{ req.order.number }}</span></p><p class="small muted">{{ req.tickets.count }} ticket{{ req.tickets.count|pluralize }} · asked {{ req.created_at|local:event|date_time }}{% if req.reason %} · “{{ req.reason|truncatechars:80 }}”{% endif %}</p></div><a class="btn" href="{% url 'organizer:order_detail' org.slug event.pk req.order.pk %}">Review</a></li>
+{% endfor %}
+{% for refund in failed_refunds %}
+<li><span class="pill pill-danger">{% include "components/icon.html" with name="alert" size=14 stroke="2.4" %}Refund failed</span><div><p style="font-weight: 600"><span class="mono">{{ refund.number }}</span> · {{ refund.amount|money:event.currency }}</p><p class="small muted">{{ refund.error|default:"The payment provider didn't accept it." }}</p></div><a class="btn" href="{% url 'organizer:order_detail' org.slug event.pk refund.order.pk %}">Open order</a></li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
+
+<form method="get" class="card card-pad" role="search">
+<div class="fields fields-sm row-end" style="align-items: flex-end">
+<div class="field" style="flex: 2 1 240px"><label for="q">Search</label><input id="q" name="q" type="search" value="{{ params.q }}" placeholder="Order, name, email or organisation"></div>
+<div class="field"><label for="status">Status</label><select id="status" name="status"><option value="">Any status</option>{% for value, label in statuses %}<option value="{{ value }}"{% if params.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+<div class="field"><label for="from">From</label><input id="from" name="from" type="date" value="{{ params.from }}"></div>
+<div class="field"><label for="to">To</label><input id="to" name="to" type="date" value="{{ params.to }}"></div>
+<div style="flex: 0 0 auto"><button class="btn btn-primary" type="submit">Filter</button></div>
+</div>
+</form>
+
+<section class="card table-wrap" aria-label="Orders">
+<table class="table" style="min-width: 760px">
+<thead><tr><th scope="col">Order</th><th scope="col">Purchaser</th><th scope="col" class="right">Tickets</th><th scope="col" class="right">Total</th><th scope="col">Status</th><th scope="col">Created</th></tr></thead>
+<tbody>
+{% for order in page_obj %}
+<tr>
+<td><a class="mono" href="{% url 'organizer:order_detail' org.slug event.pk order.pk %}">{{ order.number }}</a></td>
+<td>{{ order.purchaser_name|default:"—" }}<span class="tiny muted" style="display: block">{{ order.purchaser_email }}</span></td>
+<td class="right num">{{ order.ticket_count }}</td>
+<td class="right num">{{ order.total|amount }}{% if order.refunded_total %}<span class="tiny muted" style="display: block">−{{ order.refunded_total|amount }} refunded</span>{% endif %}</td>
+<td>{% include "organizer/_order_status.html" with status=order.status label=order.get_status_display %}</td>
+<td class="small">{{ order.created_at|local:event|date_time }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="6" class="empty">No orders match.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</section>
+{% include "organizer/_pager.html" %}
+{% endblock %}

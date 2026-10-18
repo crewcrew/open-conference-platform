@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load ocp %}
+{% block title %}Test payment{% endblock %}
+{% block body %}
+<main id="content" class="auth">
+<div class="auth-card card card-pad-lg stack">
+<p class="pill pill-warn" style="align-self: flex-start">Test payment provider · no real money</p>
+<h1 class="h1">Pay {{ order.total|money:order.currency }}</h1>
+<p class="ink-2">{{ event.name }} · order <span class="mono">{{ order.number }}</span></p>
+<p class="small muted">This page stands in for a real provider's hosted checkout. It never asks for card details. Choose an outcome to see how the platform handles it.</p>
+<form method="post" class="stack-sm">
+{% csrf_token %}
+<button type="submit" name="action" value="pay" class="btn btn-primary btn-lg btn-pill">Pay successfully</button>
+<button type="submit" name="action" value="decline" class="btn btn-danger-text btn-pill">Decline the payment</button>
+<button type="submit" name="action" value="back" class="btn btn-ghost">Go back to the details page</button>
+</form>
+</div>
+</main>
+{% endblock %}

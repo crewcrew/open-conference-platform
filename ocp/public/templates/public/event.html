@@ -1,0 +1,193 @@
+{% extends "public/base_public.html" %}
+{% load ocp %}
+{% block title %}{{ event.name }}{% endblock %}
+
+{% block header_nav %}
+<nav class="site-nav" aria-label="Event">
+{% if schedule %}<a href="#schedule">Schedule</a>{% endif %}
+<a href="#tickets">Tickets</a>
+<a href="#venue">Venue</a>
+<a class="accent" href="{% url 'public:booking_lookup' %}">Manage my booking</a>
+</nav>
+{% endblock %}
+
+{% block content %}
+{% if is_preview %}<p class="preview-bar">Preview: this event isn't published, so only your team can see this page.</p>{% endif %}
+
+<section class="hero{% if event.is_cancelled %} hero-cancelled{% endif %}" id="top">
+<div class="container">
+<div class="hero-copy">
+<p class="eyebrow">{% if event.is_cancelled %}Cancelled · {% endif %}{% event_dates event %}</p>
+<h1>{{ event.name }}</h1>
+{% if event.is_cancelled %}
+<p class="hero-lede">This event has been cancelled. If you had a ticket, the organisers will contact you about refunds.</p>
+{% elif event.summary %}
+<p class="hero-lede">{{ event.summary }}</p>
+{% endif %}
+{% if not event.is_cancelled %}
+<div class="row" style="padding-top: 8px">
+<a class="btn btn-signal btn-pill btn-lg" href="#tickets">Get tickets</a>
+{% if schedule %}<a class="btn btn-on-dark btn-pill btn-lg" href="#schedule">See the schedule</a>{% endif %}
+</div>
+{% endif %}
+</div>
+<div class="stub" aria-hidden="true">
+<div class="stub-top">
+<div class="row-between mono tiny muted"><span>ADMIT ONE</span><span>{{ event.order_prefix }}</span></div>
+<p class="stub-date">{% compact_dates event %}</p>
+<p class="mono small muted">From {{ event.starts_at|local:event|time24 }} {{ event.tz_label }}</p>
+</div>
+<div class="stub-perf"></div>
+<div class="stub-bottom">
+<div class="stack-xs"><span style="font-weight: 600; font-size: 18px">{{ event.venue_name|default:"Online" }}</span>{% if event.venue_address %}<span class="small muted">{{ event.venue_address|linebreaksbr }}</span>{% endif %}</div>
+<span class="pill pill-signal mono">{{ event.days|length }} DAY{{ event.days|length|pluralize:"S" }}</span>
+</div>
+</div>
+</div>
+</section>
+
+<section class="facts" aria-label="Key details">
+<dl class="container">
+<div><dt class="eyebrow">Dates</dt><dd>{% event_dates event %}</dd></div>
+<div><dt class="eyebrow">Venue</dt><dd>{{ event.venue_name|default:"Online" }}</dd></div>
+<div><dt class="eyebrow">Time zone</dt><dd>All times {{ event.tz_label }}</dd></div>
+{% if lowest_price is not None %}<div><dt class="eyebrow">Tickets from</dt><dd>{% if lowest_price == 0 %}Free{% else %}{{ lowest_price|money:event.currency }}{% if event.prices_include_tax %}, incl. {{ event.tax_name }}{% endif %}{% endif %}</dd></div>{% endif %}
+</dl>
+</section>
+
+<div class="container" style="padding-top: 32px">{% include "components/messages.html" %}</div>
+
+<div class="container split" style="padding-top: 32px">
+<div class="main-col stack-xl">
+{% if event.description %}
+<section class="stack" aria-labelledby="about-h">
+<h2 id="about-h" class="display" style="font-size: 36px">About</h2>
+<div class="stack" style="font-size: 18px; max-width: 680px">{{ event.description|linebreaks }}</div>
+</section>
+{% endif %}
+
+{% if schedule %}
+<section id="schedule" class="stack-lg" aria-labelledby="schedule-h">
+<div class="row-between" style="align-items: baseline">
+<h2 id="schedule-h" class="display" style="font-size: 36px">Schedule</h2>
+<p class="mono small muted">Times shown in {{ event.tz_label }}</p>
+</div>
+{% for day, slots in schedule %}
+<div class="stack-xs">
+<h3 class="h2" style="margin-bottom: 8px">Day {{ forloop.counter }} · {{ day|day_heading }}</h3>
+<ol class="schedule">
+{% for slot in slots %}
+<li class="slot">
+<span class="slot-time">{{ slot.start|time24 }}</span>
+<div class="slot-items">
+{% for session in slot.sessions %}
+{% if session.choice_group %}
+<div class="slot-item slot-item-boxed">
+<div class="stack-xs" style="min-width: 0">
+<p class="slot-title">{{ session.title }}</p>
+<p class="slot-meta">{{ session.get_kind_display }}{% if session.speakers %} · {{ session.speakers }}{% endif %}{% if session.room %} · {{ session.room }}{% endif %}{% if session.capacity %} · {{ session.capacity }} places{% endif %}</p>
+</div>
+{% if session.is_full %}<span class="pill">Full</span>{% elif session.places_left is not None and session.places_left <= 15 %}<span class="pill pill-signal">{{ session.places_left }} place{{ session.places_left|pluralize }} left</span>{% endif %}
+</div>
+{% else %}
+<div class="slot-item">
+{% if session.kind != "break" %}<span class="tag">{% if slot.sessions|length > 1 and session.room %}{{ session.room }}{% else %}{{ session.get_kind_display }}{% endif %}</span>{% endif %}
+<p class="slot-title">{{ session.title }}</p>
+{% if session.speakers or session.room %}<p class="slot-meta">{{ session.speakers }}{% if session.speakers and session.room and slot.sessions|length == 1 %} · {% endif %}{% if slot.sessions|length == 1 %}{{ session.room }}{% endif %}</p>{% endif %}
+</div>
+{% endif %}
+{% endfor %}
+</div>
+</li>
+{% endfor %}
+</ol>
+</div>
+{% endfor %}
+</section>
+{% endif %}
+</div>
+
+<aside id="tickets" class="side-col tickets-card" aria-labelledby="tickets-h">
+<form method="post" action="{{ request.path }}">
+{% csrf_token %}
+<input type="hidden" name="access_code" value="{{ access_code }}">
+<div style="padding: 24px 24px 16px" class="stack-xs">
+<h2 id="tickets-h" class="display" style="font-size: 28px">Tickets</h2>
+<p class="small muted">Prices in {{ event.currency }}{% if event.prices_include_tax %} and include {{ event.tax_name }}{% endif %}.</p>
+</div>
+{% for item in ticket_types %}
+{% with t=item.type %}
+<div class="ticket-row{% if item.state != 'on_sale' %} is-off{% endif %}">
+<div class="row-between row-top" style="flex-wrap: nowrap">
+<div class="stack-xs" style="min-width: 0">
+<p style="font-weight: 600; font-size: 17px">{{ t.name }}</p>
+{% if t.description %}<p class="small muted">{{ t.description }}</p>{% endif %}
+</div>
+<p style="font-weight: 600; font-size: 17px" class="nowrap{% if item.state == 'sold_out' or item.state == 'ended' %} strike{% endif %}">{% if t.is_free %}Free{% else %}{{ t.price|money:event.currency }}{% endif %}</p>
+</div>
+<div class="row-between">
+{% if item.state == "on_sale" %}
+<p class="tiny muted">{% if t.available <= 20 %}<span class="pill pill-signal">{{ t.available }} left</span>{% elif t.sale_ends %}On sale until {{ t.sale_ends|local:event|date_time }}{% else %}On sale now{% endif %}</p>
+<label class="sr-only" for="qty_{{ t.pk }}">Number of {{ t.name }} tickets</label>
+<select id="qty_{{ t.pk }}" name="qty_{{ t.pk }}">
+{% for n in item.choices %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+</select>
+{% elif item.state == "sold_out" %}<span class="pill">Sold out</span>
+{% elif item.state == "not_started" %}<span class="tiny muted">On sale from {{ t.sale_starts|local:event|date_time }}</span>
+{% elif item.state == "ended" %}<span class="pill">Sales ended</span>
+{% else %}<span class="pill">Not available</span>
+{% endif %}
+</div>
+</div>
+{% endwith %}
+{% empty %}
+<div class="ticket-row"><p class="muted">Tickets aren't on sale yet.</p></div>
+{% endfor %}
+<div class="tickets-foot">
+{% if not event.is_cancelled and ticket_types %}
+<button type="submit" class="btn btn-primary btn-pill btn-lg btn-block">Continue to details</button>
+<p class="tiny muted" style="text-align: center">Have a coupon? Add it on the next step. Fees are shown before you pay.</p>
+{% endif %}
+</div>
+</form>
+{% if has_hidden %}
+<details style="padding: 0 24px 20px; background: var(--ground)">
+<summary class="small" style="cursor: pointer; min-height: 44px; display: flex; align-items: center">Have an access code?</summary>
+<form method="get" class="row" style="padding-top: 4px">
+<label class="sr-only" for="code">Access code</label>
+<input class="input input-mono" style="flex: 1 1 160px; min-height: 44px; border: 1px solid var(--field-line); border-radius: 8px; padding: 0 12px" id="code" name="code" value="{{ access_code }}" autocomplete="off">
+<button type="submit" class="btn">Unlock</button>
+</form>
+</details>
+{% endif %}
+</aside>
+</div>
+
+<section id="venue" style="background: var(--surface); border-top: 1px solid var(--line); margin-top: 64px">
+<div class="container" style="padding-top: 56px; padding-bottom: 56px">
+<div class="split">
+<div class="stack" style="flex: 1 1 280px">
+<h2 class="display" style="font-size: 28px">Venue and access</h2>
+<p>{{ event.venue_name|default:"Online" }}{% if event.venue_address %}<br>{{ event.venue_address|linebreaksbr }}{% endif %}</p>
+{% if event.accessibility_info %}<div class="ink-2">{{ event.accessibility_info|linebreaks }}</div>{% endif %}
+<a href="{% url 'public:calendar' event.slug %}" style="font-weight: 600; min-height: 44px; display: inline-flex; align-items: center">Add to calendar (.ics)</a>
+</div>
+<div class="stack" style="flex: 1 1 280px">
+<h2 class="display" style="font-size: 28px">Refunds</h2>
+{% if event.refund_policy %}<div>{{ event.refund_policy|linebreaks }}</div>{% else %}<p class="muted">Contact the organisers about refunds.</p>{% endif %}
+<p class="ink-2">Questions? Email <a href="mailto:{{ event.contact_email }}">{{ event.contact_email }}</a></p>
+</div>
+<form method="post" action="{% url 'public:booking_lookup' %}" class="stack box-muted" style="flex: 1 1 280px; padding: 24px; border-radius: 16px">
+{% csrf_token %}
+<h2 class="display" style="font-size: 28px">Already registered?</h2>
+<p class="ink-2">We'll email you a secure link to view or change your booking.</p>
+<div class="field">
+<label for="lookup-email">Email you booked with</label>
+<input id="lookup-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
+</div>
+<button type="submit" class="btn btn-outline-primary btn-pill">Send my link</button>
+</form>
+</div>
+</div>
+</section>
+{% endblock %}
