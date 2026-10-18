@@ -13,7 +13,6 @@ export function attendeesQuery(mode: AppMode, org: string, eventId: string, page
     queryKey: [mode, "org", org, "event", eventId, "attendees", page, q ?? ""],
     queryFn: () => load<Paginated<Attendee>>(`${orgApiBase(org, eventId)}/attendees/?${params}`, () => demoAttendees(page, q)),
     placeholderData: keepPreviousData,
-    enabled: mode !== "unconfigured",
   });
 }
 

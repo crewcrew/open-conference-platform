@@ -2,7 +2,7 @@
 
 A self-hosted, MIT-licensed platform for running a conference end to end. Organizers publish an event, sell or give away tickets, email attendees, handle refunds, and check people in at the door. Attendees register, pay on the payment provider's page, and get QR tickets.
 
-**Try the product:** the [Lovable project](https://lovable.dev/projects/88bb01cd-8796-44d3-a3ce-f9778240175e) hosts an interactive sample-data demo. It is a product showcase; it does not accept real registrations, process payments or send email. A public demo URL will be added when it is published.
+**Try the product:** [Explore the interactive demo](https://open-conference-compass.lovable.app). It is a product showcase with sample data; it does not accept real registrations, process payments or send email.
 
 **Run your own copy:** download this repository or clone it, then follow the quickstart below. The Django application includes the full attendee and organizer experience, so you can use it without Lovable or a separate JavaScript frontend. The optional frontend source is included in `frontend/`.
 

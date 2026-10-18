@@ -15,7 +15,6 @@ export function ordersQuery(mode: AppMode, org: string, eventId: string, page: n
     queryKey: [mode, "org", org, "event", eventId, "orders", page, status ?? ""],
     queryFn: () => load<Paginated<Order>>(`${orgApiBase(org, eventId)}/orders/?${params}`, () => demoOrders(page, status)),
     placeholderData: keepPreviousData,
-    enabled: mode !== "unconfigured",
   });
 }
 

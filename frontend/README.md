@@ -1,62 +1,74 @@
 # Open Conference Platform — frontend
 
-A frontend for an existing Django conference management backend. **Django stays the source of truth**: all business logic, payments, checkout, refunds, check-in and every write operation remain on Django. This app reads from the JSON API and links to Django server pages for everything else.
+Open-source (MIT), **self-hosted** conference software. Source: https://github.com/crewcrew/open-conference-platform This repository is the web frontend; the Django conference backend is the source of truth for all business logic, payments, accounts and writes.
+
+The public Lovable deployment is **only an interactive product demo** with clearly labeled sample data. It is not a hosted conference service: nothing is bought, emailed, saved or checked in there.
+
+## Two modes
+
+| Mode | When | Behaviour |
+| --- | --- | --- |
+| **Demo** (default) | `VITE_OCP_API_URL` unset | Sample events, attendee pages and an organizer workspace (owner and volunteer roles). No network calls to any backend; no real accounts, payments or emails. Management actions are shown as non-interactive controls with a plain explanation. |
+| **Live** (self-hosted) | `VITE_OCP_API_URL` set | Talks only to your Django backend. Never shows sample data — errors (401/403/404/network) are shown as errors, not replaced by fixtures. |
+
+Mode is derived purely from build-time env, so server rendering, hydration, direct links and reloads always agree.
 
 ## Configuration
 
-| Variable | Required | Meaning |
-| --- | --- | --- |
-| `VITE_OCP_API_URL` | yes (live) | Django **origin**, without `/api/v1`. e.g. `https://api.example.com` |
-| `VITE_OCP_DEMO_MODE` | no | `true` forces the labeled sample-data preview when no backend is set. Never use in production. |
+| Variable | Meaning |
+| --- | --- |
+| `VITE_OCP_API_URL` | Your Django **origin**, without `/api/v1`, e.g. `https://api.example.com`. Setting it switches to live mode. |
+| `VITE_OCP_REPO_URL` | Optional override for forks. Defaults to the canonical repository `https://github.com/crewcrew/open-conference-platform`; "View source / Self-host" links to the repo root and "Download source" to `/archive/refs/heads/main.zip`. Invalid values fall back to the default. |
 
-```bash
-# .env.production
-VITE_OCP_API_URL=https://api.example.com
-```
+`VITE_` values are baked in at build time — rebuild after changing them.
 
-Values are baked in at build time (`VITE_` prefix) — rebuild after changing them. Without `VITE_OCP_API_URL` the site shows an honest **"Backend connection required"** screen with an opt-in, clearly labeled preview (fixtures only; nothing can be bought, changed or checked in; figures are fake).
+## Self-hosting with your Django backend
 
-## Recommended hosting: sibling subdomains
+Serve the frontend and Django on sibling subdomains of one domain, e.g. `app.example.com` and `api.example.com`, so session and CSRF cookies are same-site.
 
-Serve the frontend and Django on sibling subdomains of one registrable domain, e.g. `app.example.com` and `api.example.com`. Requests are then **same-site**, so Django's session and CSRF cookies are sent reliably with `credentials: "include"` — including in browsers that block third-party cookies. Cross-site deployments (e.g. `*.lovable.app` → `api.example.com`) will be unreliable for login.
-
-### Django settings
-
-The backend already implements exact-origin, credentialed CORS in its own middleware — **do not add django-cors-headers**. Configure via environment:
+Django already implements exact-origin, credentialed CORS in its own middleware (no extra CORS package):
 
 ```bash
 OCP_FRONTEND_ORIGINS=https://app.example.com
 OCP_CSRF_TRUSTED_ORIGINS=https://app.example.com
 ```
 
-Production cookie defaults are `Secure` and `SameSite=Lax`, which work for sibling custom domains (preferred). For a cross-site frontend such as `*.lovable.app`, set `OCP_SESSION_COOKIE_SAMESITE=None`; this still depends on the browser allowing third-party cookies (Safari and privacy-focused browsers often block them), so sign-in may fail there.
+Production cookies default to `Secure` + `SameSite=Lax`, correct for sibling domains. For a cross-site frontend you can set `OCP_SESSION_COOKIE_SAMESITE=None`, but browsers that block third-party cookies may still prevent sign-in.
 
-## Auth & security
+### Auth & security (live mode)
 
-- `GET /api/v1/session/` provides the session and CSRF token; the token is kept **in memory only**.
-- Login fetches a fresh session, then `POST /api/v1/auth/login/` with `X-CSRFToken`; the rotated token replaces the old one. Logout posts to `/api/v1/auth/logout/`.
-- Passwords and tokens are never written to browser storage. All requests use `credentials: "include"`.
-- 401 → sign-in prompt; 403 → "no access"; 404 → not found; network failures → retryable message. Backend `{error}` messages are shown.
+- `GET /api/v1/session/` → session + CSRF token, kept **in memory only**.
+- Login fetches a fresh session, then `POST /api/v1/auth/login/` with `X-CSRFToken`; logout `POST /api/v1/auth/logout/`.
+- No passwords or tokens in browser storage; all requests use `credentials: "include"`.
+- The demo stores only the chosen sample role (`owner`/`volunteer`) in sessionStorage — never credentials.
 
-## Boundary: what lives where
+## Boundary: frontend vs Django
 
-| In this frontend (read-only) | On Django (full-page navigation) |
+| In this frontend (read-only) | On Django (full-page navigation in live mode) |
 | --- | --- |
-| Public event list and detail, tickets, schedule (event timezone) | Checkout (`public_url`), booking lookup `/booking/`, signup `/accounts/signup/` |
-| Organizer workspace: org/event lists, dashboard figures, orders, attendees, communications | Create/edit org (`/manage/new/`, `/manage/:org/settings/`), team, new event, event edit/sessions/tickets/questions/coupons/orders/attendees/emails/reports/history, order detail & refunds, check-in `/checkin/:id/` |
+| Public event list/detail, tickets, schedule in event timezone | Checkout (`public_url`), `/booking/`, `/accounts/signup/` |
+| Organizer workspace: events, dashboard figures, orders (status filter), attendees (search), communications | Org create/settings/team, new event, event edit/sessions/tickets/questions/coupons/orders/attendees/emails/reports/history, order detail & refunds, check-in `/checkin/:id/` |
 
-Links are shown only when the event's `capabilities` allow them. Volunteers (only `check_in`) see their assigned events and the check-in station — no finance, attendee or report UI. Org-level links follow the membership role exactly: `manage_org` (settings) = owner; `manage_team` (team) = owner or admin; `manage_events` (new event) = owner, admin or event_manager — including organizations with no events yet. Volunteers have no org management links. Event-specific UI always uses the event's `capabilities`.
+### Permissions
+
+- Org links follow the membership role: `manage_org` (settings) = owner; `manage_team` = owner, admin; `manage_events` (new event) = owner, admin, event_manager — even with zero events. Volunteers get none.
+- Event screens use each event's `capabilities`. Volunteers (only `check_in`) see their assigned events and the check-in station — no finance, attendee or report UI.
+- Order statuses: pending, paid, failed, expired, cancelled, partially_refunded, refunded.
 
 ## Source layout
 
-`src/features/{auth,organizations,events,schedule,ticketing,attendees,communications,reports,checkin}` — feature UI and queries. `src/shared` — API client, types, config, formatting, capability rules, Django link builders, shared UI, preview fixtures. `src/routes` — thin route files.
+`src/features/{auth,organizations,events,schedule,ticketing,attendees,communications,reports,checkin}` — feature UI and queries. `src/shared` — config (backend + repo metadata), API client, types, capability rules, Django link builders, shared UI, demo fixtures. `src/routes` — thin route files.
 
 ## Development
 
 ```bash
 bun install
-bun run dev
-bun run test     # smoke + rule tests
+bun run dev        # demo mode
+bun run test
 bun run build
 ```
+
+## License
+
+MIT.
 

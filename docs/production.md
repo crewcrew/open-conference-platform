@@ -42,7 +42,7 @@ Production settings reject debug mode, weak secrets, SQLite, wildcard/local host
 
 Project: https://lovable.dev/projects/88bb01cd-8796-44d3-a3ce-f9778240175e
 
-A local frontend source snapshot is in `frontend/` (Lovable commit `5e623fe5c352629b70b7624c71f06f93e806cfb7`). Lovable verified 23 tests, type checking, and a production build. The local folder is an export, not an automatic Git sync; make subsequent remote edits in Lovable or configure a shared repository deliberately.
+A local frontend source snapshot is in `frontend/` (Lovable commit `ad7c4fa5a1763003e7780d3121b9cd456dee71a6`). Lovable verified 33 tests, type checking, and a production build. The public demo is https://open-conference-compass.lovable.app. The local folder is an export, not an automatic Git sync; make subsequent remote edits in Lovable or configure a shared repository deliberately.
 
 The Lovable demo runs on sample data. To connect your own frontend installation to your own Django instance, set `VITE_OCP_API_URL=https://api.example.com`, rebuild, and configure its custom domain. The URL is the Django origin, without `/api/v1`. Add the exact frontend origin to `OCP_FRONTEND_ORIGINS` and `OCP_CSRF_TRUSTED_ORIGINS` on Django, and restart the web/worker processes. No backend URL is fabricated. Without a backend URL, the demo frontend runs on fictional sample data.
 

@@ -1,6 +1,11 @@
 {
   "name": "open-conference-platform",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crewcrew/open-conference-platform.git"
+  },
   "sideEffects": false,
   "type": "module",
   "scripts": {

@@ -10,7 +10,7 @@ export function dashboardQuery(mode: AppMode, org: string, eventId: string, enab
   return queryOptions({
     queryKey: [mode, "org", org, "event", eventId, "dashboard"],
     queryFn: () => load<Dashboard>(`${orgApiBase(org, eventId)}/dashboard/`, () => demoDashboard(eventId)),
-    enabled: enabled && mode !== "unconfigured",
+    enabled,
   });
 }
 

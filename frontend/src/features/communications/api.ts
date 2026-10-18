@@ -11,7 +11,6 @@ export function communicationsQuery(mode: AppMode, org: string, eventId: string,
     queryKey: [mode, "org", org, "event", eventId, "communications", page],
     queryFn: () => load<Paginated<Communication>>(`${orgApiBase(org, eventId)}/communications/?page=${page}`, () => demoCommunications(page)),
     placeholderData: keepPreviousData,
-    enabled: mode !== "unconfigured",
   });
 }
 

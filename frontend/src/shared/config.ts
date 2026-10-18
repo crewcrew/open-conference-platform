@@ -17,7 +17,29 @@ export function getBackendOrigin(): string | null {
   return normalizeOrigin(import.meta.env["VITE_OCP_API_URL"] as string | undefined);
 }
 
-export function isDemoEnvEnabled(): boolean {
-  return import.meta.env["VITE_OCP_DEMO_MODE"] === "true";
+/**
+ * Source repository metadata. Defaults to the canonical public repository;
+ * forks can override with VITE_OCP_REPO_URL (must be a valid GitHub repo URL).
+ */
+export const PROJECT = {
+  name: "Open Conference Platform",
+  license: "MIT",
+  repoUrl: "https://github.com/crewcrew/open-conference-platform",
+} as const;
+
+export interface RepoLinks {
+  sourceUrl: string;
+  downloadUrl: string;
+}
+
+export function repoLinksFrom(raw: string | undefined | null): RepoLinks | null {
+  if (!raw) return null;
+  const v = raw.trim().replace(/\/+$/, "").replace(/\.git$/, "");
+  if (!/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+$/.test(v)) return null;
+  return { sourceUrl: v, downloadUrl: `${v}/archive/refs/heads/main.zip` };
+}
+
+export function getRepoLinks(): RepoLinks | null {
+  return repoLinksFrom(import.meta.env["VITE_OCP_REPO_URL"] as string | undefined) ?? repoLinksFrom(PROJECT.repoUrl);
 }
 

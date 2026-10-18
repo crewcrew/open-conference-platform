@@ -14,22 +14,38 @@ import type {
 } from "../api/types";
 import { ApiError } from "../api/client";
 
-let demoSignedIn = false;
-export function setDemoSignedIn(v: boolean) {
-  demoSignedIn = v;
+export type DemoPersona = "owner" | "volunteer";
+const PERSONA_KEY = "ocp-demo-persona"; // demo role choice only — never credentials
+
+export function getDemoPersona(): DemoPersona | null {
+  if (typeof window === "undefined") return null;
+  const v = window.sessionStorage.getItem(PERSONA_KEY);
+  return v === "owner" || v === "volunteer" ? v : null;
 }
 
-export function demoSession(): Session {
+export function setDemoPersona(p: DemoPersona | null) {
+  if (typeof window === "undefined") return;
+  if (p) window.sessionStorage.setItem(PERSONA_KEY, p);
+  else window.sessionStorage.removeItem(PERSONA_KEY);
+}
+
+export function demoSession(persona: DemoPersona | null = getDemoPersona()): Session {
+  const volunteerOrg = { slug: "sample-volunteers", name: "Harbour Volunteers (sample)", role: "volunteer" };
   return {
-    authenticated: demoSignedIn,
-    csrf_token: "preview",
-    user: demoSignedIn ? { name: "Sample Organizer", email: "organizer@example.com" } : null,
-    organizations: demoSignedIn
-      ? [
-          { slug: "sample-collective", name: "Sample Collective (preview)", role: "owner" },
-          { slug: "sample-volunteers", name: "Sample Volunteer Crew (preview)", role: "volunteer" },
-        ]
-      : [],
+    authenticated: persona !== null,
+    csrf_token: "demo",
+    user:
+      persona === "owner"
+        ? { name: "Demo organizer (owner)", email: "owner@demo.example" }
+        : persona === "volunteer"
+          ? { name: "Demo door volunteer", email: "volunteer@demo.example" }
+          : null,
+    organizations:
+      persona === "owner"
+        ? [{ slug: "sample-collective", name: "Northwind Collective (sample)", role: "owner" }, volunteerOrg]
+        : persona === "volunteer"
+          ? [volunteerOrg]
+          : [],
   };
 }
 
@@ -37,9 +53,9 @@ function eventDetails(): EventDetail[] {
   return [
     {
       id: 101,
-      name: "Sample Developer Summit",
-      slug: "sample-developer-summit",
-      summary: "A fictional two-day conference used to preview the interface.",
+      name: "Northwind Developer Summit",
+      slug: "northwind-developer-summit",
+      summary: "Two days of talks and workshops on building calm, durable software. (Sample event)",
       starts_at: "2026-11-19T09:00:00Z",
       ends_at: "2026-11-20T17:30:00Z",
       timezone: "Europe/London",
@@ -48,7 +64,7 @@ function eventDetails(): EventDetail[] {
       currency: "GBP",
       public_url: "",
       description:
-        "This is placeholder content for the preview mode. Connect a Django backend to see real events.\n\nTwo days of talks and workshops across two rooms.",
+        "This is a sample event in the Open Conference Platform demo.\n\nTwo days of talks and hands-on workshops across two rooms, with a closing panel on maintaining software for the long run.",
       venue_address: "1 Example Street, London",
       accessibility_info: "Step-free access to all rooms. Quiet room available on level 1.",
       refund_policy: "Sample policy: refunds available up to 14 days before the event.",
@@ -72,9 +88,9 @@ function eventDetails(): EventDetail[] {
     },
     {
       id: 102,
-      name: "Sample Civic Data Day",
-      slug: "sample-civic-data-day",
-      summary: "A fictional one-day meetup used to preview the interface.",
+      name: "Civic Data Day",
+      slug: "civic-data-day",
+      summary: "A one-day gathering on open data in local government. (Sample event)",
       starts_at: "2026-12-05T15:00:00Z",
       ends_at: "2026-12-05T23:00:00Z",
       timezone: "America/Chicago",
@@ -82,7 +98,7 @@ function eventDetails(): EventDetail[] {
       status: "published",
       currency: "USD",
       public_url: "",
-      description: "Placeholder content for preview mode.",
+      description: "This is a sample event in the Open Conference Platform demo.",
       venue_address: "100 Sample Ave, Chicago",
       accessibility_info: "",
       refund_policy: "",
@@ -192,7 +208,7 @@ export function demoAttendees(page: number, q?: string): Paginated<Attendee> {
 export function demoCommunications(page: number): Paginated<Communication> {
   return paginate(
     [
-      { id: 1, subject: "Your ticket for Sample Developer Summit", kind: "confirmation", status: "sent", scheduled_for: null, sent_at: "2026-09-02T09:00:00Z", recipient_count: 128 },
+      { id: 1, subject: "Your ticket for Northwind Developer Summit", kind: "confirmation", status: "sent", scheduled_for: null, sent_at: "2026-09-02T09:00:00Z", recipient_count: 128 },
       { id: 2, subject: "Venue and travel information", kind: "announcement", status: "scheduled", scheduled_for: "2026-11-12T09:00:00Z", sent_at: null, recipient_count: 128 },
       { id: 3, subject: "Speaker briefing", kind: "announcement", status: "draft", scheduled_for: null, sent_at: null, recipient_count: 0 },
     ],

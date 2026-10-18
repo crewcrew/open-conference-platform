@@ -9,10 +9,10 @@ export const Route = createFileRoute("/login")({
   }),
   head: () => ({
     meta: [
-      { title: "Organizer sign in — Open Conference Platform" },
-      { name: "description", content: "Sign in to the organizer workspace to manage your events." },
-      { property: "og:title", content: "Organizer sign in — Open Conference Platform" },
-      { property: "og:description", content: "Sign in to the organizer workspace to manage your events." },
+      { title: "Organizer workspace — Open Conference Platform" },
+      { name: "description", content: "Enter the organizer workspace to manage events, orders, attendees and check-in." },
+      { property: "og:title", content: "Organizer workspace — Open Conference Platform" },
+      { property: "og:description", content: "Enter the organizer workspace to manage events, orders, attendees and check-in." },
     ],
   }),
   component: LoginRoute,

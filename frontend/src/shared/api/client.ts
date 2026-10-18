@@ -96,7 +96,7 @@ export async function apiRequest<T>(
   return data as T;
 }
 
-/** Load live data from Django, or labeled sample data when in preview mode. */
+/** Demo mode serves labeled fixtures; live mode only ever calls the backend (errors are surfaced, never replaced by fixtures). */
 export function load<T>(path: string, demo: () => T): Promise<T> {
   if (getMode() === "demo") return Promise.resolve(demo());
   return apiRequest<T>(path);

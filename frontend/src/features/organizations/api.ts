@@ -9,7 +9,6 @@ export function orgEventsQuery(mode: AppMode, org: string) {
   return queryOptions({
     queryKey: [mode, "org", org, "events"],
     queryFn: () => load<{ results: OrgEvent[] }>(`/organizations/${enc(org)}/events/`, () => demoOrgEvents(org)),
-    enabled: mode !== "unconfigured",
   });
 }
 

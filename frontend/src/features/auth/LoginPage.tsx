@@ -7,8 +7,8 @@ import { toApiError } from "@/shared/api/client";
 import { backendUrl, djangoPaths } from "@/shared/backend-links";
 import { useMode } from "@/shared/mode";
 import { PublicShell } from "@/shared/ui/public-shell";
-import { SetupScreen } from "@/shared/ui/setup-screen";
 import { LoadingState } from "@/shared/ui/states";
+import { DemoEntry } from "./DemoEntry";
 import { login, sessionQuery, useSession } from "./api";
 
 export function LoginPage({ redirect }: { redirect?: string | undefined }) {
@@ -23,10 +23,9 @@ export function LoginPage({ redirect }: { redirect?: string | undefined }) {
   const target = redirect && redirect.startsWith("/manage") ? redirect : "/manage";
 
   useEffect(() => {
-    if (session.data?.authenticated) navigate({ to: target, replace: true });
-  }, [session.data?.authenticated, navigate, target]);
+    if (mode === "live" && session.data?.authenticated) navigate({ to: target, replace: true });
+  }, [mode, session.data?.authenticated, navigate, target]);
 
-  if (mode === "unconfigured") return <PublicShell><SetupScreen /></PublicShell>;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -56,6 +55,7 @@ export function LoginPage({ redirect }: { redirect?: string | undefined }) {
   }
 
   const signup = backendUrl(djangoPaths.signup());
+  if (mode === "demo") return <DemoEntry target={target} />;
 
   return (
     <PublicShell>
@@ -64,15 +64,6 @@ export function LoginPage({ redirect }: { redirect?: string | undefined }) {
         <h1 className="mt-2 text-3xl font-semibold">Sign in</h1>
         {session.isPending ? (
           <LoadingState />
-        ) : mode === "demo" ? (
-          <div className="panel mt-8 p-6">
-            <p className="text-muted-foreground">
-              Preview mode uses a fictional organizer account with sample organizations. No credentials are sent anywhere.
-            </p>
-            <button type="button" className={buttonVariants({ className: "mt-5 w-full" })} disabled={busy} onClick={onSubmit as never}>
-              Continue as sample organizer
-            </button>
-          </div>
         ) : (
           <form onSubmit={onSubmit} className="panel mt-8 space-y-5 p-6" noValidate>
             {error && (
@@ -95,8 +86,7 @@ export function LoginPage({ redirect }: { redirect?: string | undefined }) {
         )}
         <p className="mt-6 text-sm text-muted-foreground">
           New organizer?{" "}
-          {signup ? <a href={signup} className="text-primary underline underline-offset-2">Create an account</a> : "Account creation needs a connected backend."}
-          {" · "}
+          {signup && <><a href={signup} className="text-primary underline underline-offset-2">Create an account</a>{" · "}</>}
           <Link to="/" className="underline underline-offset-2">Back to events</Link>
         </p>
       </div>

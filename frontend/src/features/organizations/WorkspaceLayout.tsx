@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { DemoBanner } from "@/shared/ui/demo-banner";
 import { ManagementLink } from "@/shared/ui/management-link";
 import { Brand } from "@/shared/ui/public-shell";
+import { SourceLinks } from "@/shared/ui/source-links";
 import { NoAccess } from "@/shared/ui/states";
 import { useOrgEvents } from "./api";
 
@@ -51,7 +52,7 @@ export function WorkspaceLayout({ orgSlug }: { orgSlug: string }) {
         <aside
           id="workspace-nav"
           className={cn(
-            "border-r bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:block md:h-screen md:w-72 md:shrink-0 md:overflow-y-auto",
+            "border-r bg-sidebar text-sidebar-foreground md:sticky md:top-0 md:block md:max-h-screen md:self-start md:w-72 md:shrink-0 md:overflow-y-auto",
             open ? "block" : "hidden",
           )}
           onClick={(e) => (e.target as HTMLElement).closest("a") && setOpen(false)}
@@ -87,7 +88,7 @@ function SidebarContent({ orgSlug }: { orgSlug: string }) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-6 p-4">
+    <div className="flex min-h-full flex-col gap-6 p-4">
       <div className="hidden md:block"><Brand /></div>
 
       <div>
@@ -124,6 +125,7 @@ function SidebarContent({ orgSlug }: { orgSlug: string }) {
         {orgCan(membership, "manage_org") && (
           <ManagementLink path={djangoPaths.orgSettings(orgSlug)} variant="ghost" size="sm" className="w-full justify-start">Organization settings</ManagementLink>
         )}
+        <SourceLinks stacked className="pt-2" />
         <div className="pt-2 text-sm">
           <p className="truncate font-medium">{session.data?.user?.name}</p>
           <p className="truncate text-muted-foreground">{session.data?.user?.email}</p>

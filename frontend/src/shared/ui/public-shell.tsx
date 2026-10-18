@@ -4,8 +4,10 @@ import type { ReactNode } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { useSession } from "@/features/auth/api";
 import { djangoPaths, backendUrl } from "../backend-links";
+import { getRepoLinks, PROJECT } from "../config";
 import { useMode } from "../mode";
 import { DemoBanner } from "./demo-banner";
+import { SourceLinks } from "./source-links";
 
 export function Brand() {
   return (
@@ -19,8 +21,9 @@ export function Brand() {
 export function PublicShell({ children }: { children: ReactNode }) {
   const mode = useMode();
   const session = useSession();
-  const booking = backendUrl(djangoPaths.bookingLookup());
+  const booking = mode === "live" ? backendUrl(djangoPaths.bookingLookup()) : null;
   const signedIn = session.data?.authenticated;
+  const repo = getRepoLinks();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -31,28 +34,27 @@ export function PublicShell({ children }: { children: ReactNode }) {
       <header className="border-b">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4">
           <Brand />
-          {mode !== "unconfigured" && (
-            <nav aria-label="Main" className="flex items-center gap-1 text-sm">
-              <Link to="/" className={buttonVariants({ variant: "ghost", size: "sm" })} activeOptions={{ exact: true }}>
-                Events
+          <nav aria-label="Main" className="flex flex-wrap items-center gap-1 text-sm">
+            <Link to="/" className={buttonVariants({ variant: "ghost", size: "sm" })} activeOptions={{ exact: true }}>
+              Events
+            </Link>
+            {booking && <a href={booking} className={buttonVariants({ variant: "ghost", size: "sm" })}>Find my booking</a>}
+            {repo && <a href={repo.sourceUrl} className={buttonVariants({ variant: "ghost", size: "sm" })} rel="noopener">View source / Self-host</a>}
+            {signedIn ? (
+              <Link to="/manage" className={buttonVariants({ size: "sm" })}>Organizer workspace</Link>
+            ) : (
+              <Link to="/login" className={buttonVariants({ size: "sm", variant: mode === "demo" ? "default" : "outline" })}>
+                {mode === "demo" ? "Explore organizer demo" : "Organizer sign in"}
               </Link>
-              {booking && (
-                <a href={booking} className={buttonVariants({ variant: "ghost", size: "sm" })}>Find my booking</a>
-              )}
-              {signedIn ? (
-                <Link to="/manage" className={buttonVariants({ size: "sm" })}>Organizer workspace</Link>
-              ) : (
-                <Link to="/login" className={buttonVariants({ variant: "outline", size: "sm" })}>Organizer sign in</Link>
-              )}
-            </nav>
-          )}
+            )}
+          </nav>
         </div>
       </header>
       <main id="main" className="flex-1">{children}</main>
       <footer className="border-t">
-        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2 px-4 py-6 text-sm text-muted-foreground">
-          <p>Open Conference Platform</p>
-          <p>Secure checkout and bookings are handled by the event's conference server.</p>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6 text-sm text-muted-foreground">
+          <p>{PROJECT.name} · Open source under the {PROJECT.license} license · Self-hosted</p>
+          <SourceLinks />
         </div>
       </footer>
     </div>

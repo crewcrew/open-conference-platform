@@ -1,10 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter, rootRouteId } from "@tanstack/react-router";
-import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { routeTree } from "@/routeTree.gen";
-import { SetupScreen } from "@/shared/ui/setup-screen";
 
 describe("App routing", () => {
   const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
@@ -21,10 +19,4 @@ describe("App routing", () => {
   });
 });
 
-describe("Setup screen", () => {
-  it("explains that a backend connection is required", () => {
-    render(<SetupScreen />);
-    expect(screen.getByRole("heading", { name: "Backend connection required" })).toBeInTheDocument();
-  });
-});
 

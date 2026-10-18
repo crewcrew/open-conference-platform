@@ -9,7 +9,6 @@ import { backendUrl, djangoPaths } from "@/shared/backend-links";
 import { formatEventDates } from "@/shared/format";
 import { useMode } from "@/shared/mode";
 import { PublicShell } from "@/shared/ui/public-shell";
-import { SetupScreen } from "@/shared/ui/setup-screen";
 import { ErrorState, LoadingState } from "@/shared/ui/states";
 import { eventDetailQuery } from "./api";
 
@@ -17,7 +16,6 @@ export function EventDetailPage({ slug }: { slug: string }) {
   const mode = useMode();
   const q = useQuery(eventDetailQuery(mode, slug));
 
-  if (mode === "unconfigured") return <PublicShell><SetupScreen /></PublicShell>;
 
   return (
     <PublicShell>
@@ -51,12 +49,12 @@ function EventBody({ event }: { event: import("@/shared/api/types").EventDetail 
             </a>
           ) : (
             <span className={buttonVariants({ size: "lg", variant: "outline" }) + " cursor-not-allowed opacity-60"}>
-              Ticket checkout unavailable in preview
+              Checkout is off in the demo
             </span>
           )}
           {booking && <a href={booking} className={buttonVariants({ variant: "ghost" })}>Find an existing booking</a>}
         </div>
-        {buyUrl && <p className="mt-2 text-sm text-muted-foreground">You'll complete payment on the event's secure checkout.</p>}
+        <p className="mt-2 text-sm text-muted-foreground">{buyUrl ? "You'll complete payment on the event's secure checkout." : "In a self-hosted install, this button opens the secure checkout. No payments are taken in the demo."}</p>
       </header>
 
       <div className="mt-10 grid gap-12 lg:grid-cols-[1fr_20rem]">
